@@ -13,7 +13,6 @@ export interface NoteWindowGeometry {
 
 type Point = { x: number; y: number };
 type Size = { width: number; height: number };
-type Screen = { position: Point; size: Size };
 
 /** Current sticker frame, relative to the monitor it sits on. */
 export async function readNoteGeometry(): Promise<NoteWindowGeometry | undefined> {

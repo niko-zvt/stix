@@ -166,7 +166,7 @@ function Toast({
     <div
       className={`
         fixed bottom-6 left-1/2 -translate-x-1/2 z-[200]
-        px-4 py-2.5 rounded-xl shadow-stik
+        px-4 py-2.5 rounded-xl shadow-stix
         text-[13px] font-medium
         transition-all duration-200 ease-out
         ${styles}

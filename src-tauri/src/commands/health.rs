@@ -79,7 +79,7 @@ fn assess_observation(observation: HealthObservation) -> VaultHealthReport {
         issues.push(issue(
             "vault_not_writable",
             "error",
-            "Stik cannot write to the configured vault.".to_string(),
+            "Stix cannot write to the configured vault.".to_string(),
             "Restore folder permissions or choose a writable notes location.",
         ));
     }
@@ -104,7 +104,7 @@ fn assess_observation(observation: HealthObservation) -> VaultHealthReport {
                 issues.push(issue(
                     "vault_scan_failed",
                     "warning",
-                    format!("Stik could not scan the vault: {error}"),
+                    format!("Stix could not scan the vault: {error}"),
                     "Retry the check. If it still fails, review folder permissions.",
                 ));
             }
@@ -139,7 +139,6 @@ fn assess_observation(observation: HealthObservation) -> VaultHealthReport {
 fn mode_label(mode: &StorageMode) -> String {
     match mode {
         StorageMode::Local => "local",
-        StorageMode::ICloud => "icloud",
         StorageMode::Custom(_) => "custom",
     }
     .to_string()
@@ -181,7 +180,7 @@ fn can_write_to(root: &Path) -> bool {
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_nanos())
         .unwrap_or_default();
-    let probe = root.join(format!(".stik-health-{}-{nonce}", std::process::id()));
+    let probe = root.join(format!(".stix-health-{}-{nonce}", std::process::id()));
     let probe_string = probe.to_string_lossy();
     if storage::write_bytes(&probe_string, b"health-check").is_err() {
         return false;
@@ -192,7 +191,7 @@ fn can_write_to(root: &Path) -> bool {
 fn collect_vault_health(index: &NoteIndex) -> VaultHealthReport {
     let mode = storage::current_mode();
     let indexed_note_count = index.len();
-    match storage::configured_stik_root() {
+    match storage::configured_stix_root() {
         Ok(root) => {
             let root_exists = root.exists();
             let root_is_directory = root.is_dir();
@@ -267,7 +266,7 @@ mod tests {
     fn reports_a_healthy_vault() {
         let report = assess_observation(HealthObservation {
             storage_mode: "local".to_string(),
-            root_path: Some("/tmp/Stik".into()),
+            root_path: Some("/tmp/Stix".into()),
             root_error: None,
             root_exists: true,
             root_is_directory: true,
@@ -284,7 +283,7 @@ mod tests {
     fn reports_unwritable_and_out_of_sync_vaults() {
         let report = assess_observation(HealthObservation {
             storage_mode: "custom".to_string(),
-            root_path: Some("/readonly/Stik".into()),
+            root_path: Some("/readonly/Stix".into()),
             root_error: None,
             root_exists: true,
             root_is_directory: true,
@@ -307,9 +306,9 @@ mod tests {
     #[test]
     fn turns_root_resolution_failures_into_an_actionable_report() {
         let report = assess_observation(HealthObservation {
-            storage_mode: "icloud".to_string(),
+            storage_mode: "local".to_string(),
             root_path: None,
-            root_error: Some("iCloud Drive is unavailable".to_string()),
+            root_error: Some("Notes folder is unavailable".to_string()),
             root_exists: false,
             root_is_directory: false,
             root_writable: false,

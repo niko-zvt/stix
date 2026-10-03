@@ -1,4 +1,4 @@
-# Stik Mobile & Sync — plan
+# Stix Mobile & Sync — plan
 
 > Status: revised twice — once by hand, once by a six-lens audit of the
 > codebase that produced 30 verified gaps. Nothing built yet.
@@ -20,7 +20,7 @@ cloud ship together as **1.0**.
 | Runtime | Expo (bare workflow) | Needs custom native modules for App Intents and SAF, so bare rather than managed |
 | Components | [react-native-reusables](https://github.com/founded-labs/react-native-reusables) | The shadcn/ui port for RN — same component names, same copy-paste model |
 | Styling | [NativeWind](https://www.nativewind.dev) | Tailwind for RN, so desktop class names carry across |
-| Editor | a new `@stik/editor` package in a WebView | The `WebEditor/` fork is stale and its host bridge is WKWebView-only — see Phase 0 |
+| Editor | a new `@stix/editor` package in a WebView | The `WebEditor/` fork is stale and its host bridge is WKWebView-only — see Phase 0 |
 | Crypto | libsodium via `react-native-libsodium` | Audited primitives; do not hand-roll. Desktop has no matching half yet — `Cargo.toml` carries `aes-gcm` only |
 | Builds | EAS | Signed iOS/Android builds without local Xcode/Gradle babysitting |
 
@@ -38,7 +38,7 @@ Maestro flows — the same intent, different instrument.
 Desktop themes live in `src/themes/index.ts` as space-separated RGB triples
 (`bg: "255 252 249"`) consumed through CSS variables. Nine built-in themes.
 
-Extract them once into a shared `@stik/tokens` package emitting both:
+Extract them once into a shared `@stix/tokens` package emitting both:
 - CSS variables for desktop and the WebView editor
 - a NativeWind theme object for the RN app
 
@@ -48,13 +48,13 @@ that does carry over untouched.
 
 ## Reusing the existing scaffold
 
-`~/Developer/stik` is not wasted on the React Native path:
+`~/Developer/stix` is not wasted on the React Native path:
 
 - **`Intents/QuickCaptureIntent.swift` is the declaration half of the Action
   button**, and App Intents must be Swift on any stack, so it survives. It does
   not move "unchanged": the intent only sets a UserDefaults flag
   (`QuickCaptureIntent.swift:10`) and both its consumers live in the SwiftUI
-  layer being discarded (`StikApp.swift:12-25`, `AppViewModel.swift:95-98`). The
+  layer being discarded (`StixApp.swift:12-25`, `AppViewModel.swift:95-98`). The
   RN app has to re-implement the consumer — a native module that reads and clears
   the flag on `AppState` active and routes to capture. Nothing can write a note
   while the JS bundle is unloaded, so a true background capture needs the write
@@ -70,13 +70,13 @@ that does carry over untouched.
   entitlements sitting next to it. Its `setCustomLocation` takes a user-picked
   folder and holds a security-scoped bookmark. See "Storage" below for why that
   matters more than the ubiquity container does.
-- **`Design/StikColors.swift`** confirms the token values already ported once.
+- **`Design/StixColors.swift`** confirms the token values already ported once.
 
 **`WebEditor/` cannot be lifted wholesale — it is already a stale fork.** It
 carries 9 CodeMirror modules. Desktop `src/extensions/` has those same 9 plus
 `cm-a11y.ts`, `cm-bidi.ts`, `cm-vim.ts` and `cm-block-widgets.ts`, and it keeps
 gaining more. Copying the directory again only resets the drift clock. Give it
-the same treatment as the tokens: one `@stik/editor` package that desktop and
+the same treatment as the tokens: one `@stix/editor` package that desktop and
 the WebView both build from.
 
 What is discarded: the SwiftUI views and view models. Roughly 20 of 28 files.
@@ -84,7 +84,7 @@ What is discarded: the SwiftUI views and view models. Roughly 20 of 28 files.
 ## Platform integration
 
 **iPhone Action button** — a Swift native module exposing `QuickCaptureIntent`
-and `StikShortcuts`, bridged to RN so `perform()` deep-links into the capture
+and `StixShortcuts`, bridged to RN so `perform()` deep-links into the capture
 screen. Requires iPhone 15 Pro or newer; the intent is still declared on all
 devices and reachable from Spotlight, Shortcuts, and the Lock Screen.
 
@@ -97,17 +97,17 @@ it changes the iOS work.
 
 Desktop does **not** use a ubiquity container. `storage.rs` resolves iCloud to
 the generic iCloud Drive folder,
-`~/Library/Mobile Documents/com~apple~CloudDocs/Stik`, and the comment there
+`~/Library/Mobile Documents/com~apple~CloudDocs/Stix`, and the comment there
 explains the choice: a dedicated container needs
 `com.apple.developer.icloud-container-identifiers` and a provisioning profile,
 which stopped ad-hoc signed builds from launching in v0.7.7.
 
 The iOS scaffold's entitlements do the opposite. They declare
-`iCloud.com.0xmassi.stik` as a ubiquity container with
-`NSUbiquitousContainerName = Stik`. That is a separate backing store, so notes
+`iCloud.com.stix.app` as a ubiquity container with
+`NSUbiquitousContainerName = Stix`. That is a separate backing store, so notes
 written by desktop never appear in it — and since the container publishes its
 document scope, it surfaces in iCloud Drive under the same display name desktop
-already creates. Two folders called "Stik", one of them permanently empty.
+already creates. Two folders called "Stix", one of them permanently empty.
 
 iOS also has no API for arbitrary `com~apple~CloudDocs` paths. The only
 supported way into desktop's folder is `UIDocumentPickerViewController` plus a
@@ -119,7 +119,7 @@ primary path on iOS.** Android's Storage Access Framework has the same shape, so
 both platforms end up sharing one mental model and one onboarding screen, and
 neither depends on a provisioning profile.
 
-## Stik Cloud
+## Stix Cloud
 
 Client-side encryption; the server stores ciphertext and never holds a key.
 
@@ -177,9 +177,9 @@ sync bug as the top risk, then proposes nothing that makes such a bug
 survivable.
 
 **Locked notes cannot sync today, and can already be lost.** `note_lock.rs`
-encrypts with a random 32-byte key at `~/.stik/note-key`; Touch ID is only the
+encrypts with a random 32-byte key at `~/.stix/note-key`; Touch ID is only the
 access gate, and the key is not derived from anything. It is device-local, and
-`~/.stik` sits outside the notes folder, so it never travels. A locked note is
+`~/.stix` sits outside the notes folder, so it never travels. A locked note is
 undecryptable on any other machine right now, and losing the Mac loses it
 permanently — a live desktop risk, not a mobile one. Pick one before Phase 4:
 derive the lock key from the passphrase-derived master key, move to a per-note
@@ -336,17 +336,17 @@ tombstones — binds to it.
 | Writes are non-atomic | `storage.rs:142` bare `fs::write` | A sync agent can read a half-written `.md` and upload it as the newest revision. The repo already does tmp+rename for its JSON stores (`cursor_positions.rs:30-33`), and iCloud mode is coordinated — only the default path is not. |
 | The watcher has no self-write suppression | `file_watcher.rs:49-55`, `102-118` | Every write the sync agent makes is re-read and re-broadcast as a user edit. Agent and app echo each other over the same files. |
 | Bulk writes are a processing storm | `file_watcher.rs:102-118` → `embeddings.rs:223-246` | Each landed note costs two serialized DarwinKit RPCs through one bridge thread, plus a full rewrite of the ~4KB/note `embeddings.json` per debounce batch. Ungated by `ai_features_enabled`, sidecar started unconditionally (`main.rs:591-597`). The Phase 4 restore drill stalls on the client, not the network. Needs a bulk-import mode. |
-| The synced set is undefined | `index.rs:200-219` | The only exclusion rule skips all dot-directories — which excludes the `.assets/` this plan requires syncing. Include dot-dirs and `.git` comes too, and under the `stik_root` git layout (`git_share.rs:402`) that `.git` is at the Stik root and `git add -A` stages it (`:504`). |
+| The synced set is undefined | `index.rs:200-219` | The only exclusion rule skips all dot-directories — which excludes the `.assets/` this plan requires syncing. Include dot-dirs and `.git` comes too, and under the `stix_root` git layout (`git_share.rs:402`) that `.git` is at the Stix root and `git add -A` stages it (`:504`). |
 | `git_share` is a second sync engine on the same tree | `notes.rs:142`, `git_share.rs:16`, `:535`, `:629-633` | It pushes **plaintext** notes to a third-party remote on a 30s debounce fired from every save, and resolves conflicts with `git pull` plus `git checkout --theirs`. The plan never mentions it. Decide what happens when both are on. |
 | The WebEditor host bridge is WKWebView-only | `WebEditor/src/index.ts:65-70` | `window.webkit.messageHandlers` with optional chaining — a silent no-op off WKWebView. Under `react-native-webview` the editor mounts, accepts typing, and never persists a keystroke. Needs a host-agnostic bridge; nothing currently calls the synchronous `getContent`, so it is a shim, not a rewrite. |
-| Neither mobile platform has change detection | `CloudContainer.swift:126,176-194` | The plan makes picked-folder/SAF the primary path and designs version vectors on top, but never says how a client notices a file changed. The scaffold's watcher is a single **non-recursive** DispatchSource on `Stik/`, blind to `Stik/<Folder>/*.md` — the only place notes go. Android SAF exposes no mtime or size on a `content://` tree. |
+| Neither mobile platform has change detection | `CloudContainer.swift:126,176-194` | The plan makes picked-folder/SAF the primary path and designs version vectors on top, but never says how a client notices a file changed. The scaffold's watcher is a single **non-recursive** DispatchSource on `Stix/`, blind to `Stix/<Folder>/*.md` — the only place notes go. Android SAF exposes no mtime or size on a `content://` tree. |
 
 ### Medium — worth a line each
 
 - **Locking leaves a plaintext shadow.** `lock_note` (`note_lock.rs:253-274`)
   never purges the note's embedding, unlike `delete_note` and `move_note`. A
   locked note's content-derived vector sits in cleartext in
-  `~/.stik/embeddings.json` indefinitely. `build_embeddings` deliberately skips
+  `~/.stix/embeddings.json` indefinitely. `build_embeddings` deliberately skips
   locked notes, which confirms this is an oversight rather than a policy.
 - **"Empty content" is the delete command** (`notes.rs:291-302`), and the two
   definitions of empty disagree: Rust treats a `<br>`-only buffer as empty and
@@ -356,7 +356,7 @@ tombstones — binds to it.
   while folder identity is an exact-case string used for filtering
   (`index.rs:143`) and as the settings key for colours and icons. APFS is
   case-insensitive; Android and object stores are byte-exact.
-- **Every `~/.stik` store is keyed by absolute path** with no remap when the
+- **Every `~/.stix` store is keyed by absolute path** with no remap when the
   root changes — `icloud_migrate_notes` (`icloud.rs:126-164`) rebuilds
   `NoteIndex` only, orphaning embeddings and cursor positions on every iCloud
   toggle today.
@@ -430,7 +430,7 @@ Three tracks run in parallel; only one is on the critical path.
 |---|---|---|
 | A — RN app shell, capture, list, editor host, local storage | ~3 weeks | tokens package |
 | B — native modules: App Intents, SAF, share target, tile | ~2 weeks | Track A shell |
-| C — **Stik Cloud: auth, storage, E2E, billing, conflicts** | **~6–8 weeks** | nothing |
+| C — **Stix Cloud: auth, storage, E2E, billing, conflicts** | **~6–8 weeks** | nothing |
 | D — desktop feature work | continuous | nothing |
 
 **Track C is the critical path and it is roughly triple the others.** For a
@@ -501,8 +501,8 @@ Zero open PRs and zero open issues, so nothing is queued behind review.
 - [ ] Trash and note history, so a sync bug is survivable (open question 7)
 
 **Phase 1 — foundations (parallel with Phase 4)**
-- `@stik/tokens` extracted from `src/themes/index.ts`
-- `@stik/editor` extracted from `src/extensions/` — 13 modules, ~2,970 lines,
+- `@stix/tokens` extracted from `src/themes/index.ts`
+- `@stix/editor` extracted from `src/extensions/` — 13 modules, ~2,970 lines,
   13 imports in `Editor.tsx` and 2 in `PostIt.tsx`, 27 test files to keep green.
   A desktop refactor, not a copy, and it was unestimated in the first draft
 - Host-agnostic WebView bridge for the editor
@@ -520,7 +520,7 @@ Zero open PRs and zero open issues, so nothing is queued behind review.
 - Android share target and quick-settings tile
 - Maestro flows for capture from cold start on both platforms
 
-**Phase 4 — Stik Cloud** *(starts at day one, not after Phase 3)*
+**Phase 4 — Stix Cloud** *(starts at day one, not after Phase 3)*
 - Auth and account
 - E2E envelope: Argon2id, per-note keys, recovery key
 - Sync engine, version vectors, conflict copies
@@ -539,7 +539,7 @@ Zero open PRs and zero open issues, so nothing is queued behind review.
    is closed.
 2. Free tier: does no-account sync (iCloud on iOS, SAF on Android) stay
    permanently, or become a trial?
-3. One repo or two? A monorepo shares `@stik/tokens` and the editor package
+3. One repo or two? A monorepo shares `@stix/tokens` and the editor package
    cheaply; a separate repo keeps mobile release cycles independent.
 4. Is the Phase 4 cut line above acceptable as the fallback for holding the
    single-1.0 goal?

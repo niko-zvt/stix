@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
-use super::folders::get_stik_folder;
+use super::folders::get_stix_folder;
 use super::macos_notify;
 use super::versioning;
 
@@ -90,10 +90,10 @@ fn check_on_this_day(force: bool, show_notification: bool) -> Result<OnThisDaySt
 }
 
 fn collect_candidates(today: NaiveDate) -> Result<Vec<OnThisDayCandidate>, String> {
-    let stik_folder = get_stik_folder()?;
+    let stix_folder = get_stix_folder()?;
     let mut candidates = Vec::new();
 
-    let folders: Vec<PathBuf> = fs::read_dir(&stik_folder)
+    let folders: Vec<PathBuf> = fs::read_dir(&stix_folder)
         .map_err(|e| e.to_string())?
         .filter_map(|entry| entry.ok())
         .filter(|entry| entry.path().is_dir())
@@ -181,8 +181,8 @@ fn should_notify_today(last_notified_date: Option<&str>, today: NaiveDate) -> bo
 }
 
 fn get_state_path() -> Result<PathBuf, String> {
-    let stik_config = super::paths::config_dir()?;
-    Ok(stik_config.join("on_this_day.json"))
+    let stix_config = super::paths::config_dir()?;
+    Ok(stix_config.join("on_this_day.json"))
 }
 
 fn load_state() -> Result<OnThisDayState, String> {

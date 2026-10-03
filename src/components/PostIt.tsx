@@ -12,7 +12,7 @@ import Editor, { type EditorRef } from "./Editor";
 import FolderPicker from "./FolderPicker";
 import AiMenu from "./AiMenu";
 import SpeechButton from "./SpeechButton";
-import type { StickedNote, StikSettings } from "@/types";
+import type { StickedNote, StixSettings } from "@/types";
 import type { VimMode } from "@/extensions/cm-vim";
 import {
   getSlashCommandNames,
@@ -22,7 +22,7 @@ import {
   isMarkdownEffectivelyEmpty,
   normalizeMarkdownForCopy,
 } from "@/utils/normalizeMarkdownForCopy";
-import { shouldSaveOnGlobalEscape } from "@/utils/captureEscape";
+import { shouldSinkOnEscape } from "@/utils/captureEscape";
 import { matchesShortcut } from "@/utils/matchShortcut";
 import { isCaptureSlashQuery } from "@/utils/slashQuery";
 import { markdownToPlainText } from "@/utils/markdownToHtml";
@@ -36,15 +36,16 @@ import { getFolderColor } from "@/utils/folderColors";
 import { errorMessage } from "@/utils/appError";
 import { formatShortcutDisplay } from "./ShortcutRecorder";
 import { loadGoogleFont, loadCustomFont } from "@/utils/fonts";
-import SyncIndicator from "./SyncIndicator";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useAppQuit } from "@/hooks/useAppQuit";
+import { readNoteGeometry, type NoteWindowGeometry } from "@/utils/noteGeometry";
 
 interface PostItProps {
   folder: string;
   onSave: (
     content: string,
     preferredFolder?: string,
+    geometry?: NoteWindowGeometry,
   ) => Promise<string | undefined | void>;
   onClose: () => void;
   onFolderChange: (folder: string) => void;
@@ -88,7 +89,7 @@ function Toast({ message, onDone }: { message: string; onDone: () => void }) {
       aria-atomic="true"
       className={`
         fixed bottom-6 left-1/2 -translate-x-1/2 z-[250]
-        px-4 py-2.5 rounded-xl shadow-stik
+        px-4 py-2.5 rounded-xl shadow-stix
         text-[13px] font-medium bg-ink text-bg
         transition-[opacity,transform] duration-200 ease-out
         ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}
@@ -144,7 +145,6 @@ export default function PostIt({
   const [textDirection, setTextDirection] = useState<"auto" | "ltr" | "rtl">(
     "auto",
   );
-  const [icloudEnabled, setIcloudEnabled] = useState(false);
   const [loadRemoteImages, setLoadRemoteImages] = useState(false);
   const [zenMode, setZenMode] = useState(false);
   const [dictationActiveModel, setDictationActiveModel] = useState<
@@ -155,7 +155,7 @@ export default function PostIt({
   );
   const [formatToolbar, setFormatToolbar] = useState(() => {
     try {
-      return localStorage.getItem("stik:format-toolbar") !== "0";
+      return localStorage.getItem("stix:format-toolbar") !== "0";
     } catch {
       return true;
     }
@@ -254,7 +254,7 @@ export default function PostIt({
 
   const resolveFolderForAction = useCallback(async (): Promise<string> => {
     const folders = await invoke<string[]>("list_folders");
-    const settings = await invoke<StikSettings>("get_settings");
+    const settings = await invoke<StixSettings>("get_settings");
     const resolved = resolveCaptureFolder({
       requestedFolder: folder.trim(),
       defaultFolder: settings.default_folder?.trim(),
@@ -294,7 +294,7 @@ export default function PostIt({
 
   // Fetch vim mode + folder colors + folder list on mount + listen for changes
   useEffect(() => {
-    invoke<StikSettings>("get_settings")
+    invoke<StixSettings>("get_settings")
       .then((s) => {
         setVimEnabled(s.vim_mode_enabled);
         setFontSize(s.font_size ?? 14);
@@ -307,7 +307,6 @@ export default function PostIt({
         setTextDirection(
           (s.text_direction as "auto" | "ltr" | "rtl") || "auto",
         );
-        setIcloudEnabled(s.icloud?.enabled ?? false);
         setLoadRemoteImages(s.load_remote_images ?? false);
         setZenMode(s.zen_mode_enabled ?? false);
         setDictationActiveModel(s.dictation?.active_model ?? null);
@@ -323,7 +322,7 @@ export default function PostIt({
       })
       .catch(() => {});
 
-    const unlisten = listen<StikSettings>("settings-changed", (event) => {
+    const unlisten = listen<StixSettings>("settings-changed", (event) => {
       setVimEnabled(event.payload.vim_mode_enabled);
       setFontSize(event.payload.font_size ?? 14);
       setFontFamily(event.payload.font_family ?? null);
@@ -335,7 +334,6 @@ export default function PostIt({
       setTextDirection(
         (event.payload.text_direction as "auto" | "ltr" | "rtl") || "auto",
       );
-      setIcloudEnabled(event.payload.icloud?.enabled ?? false);
       setLoadRemoteImages(event.payload.load_remote_images ?? false);
       setDictationActiveModel(event.payload.dictation?.active_model ?? null);
       setDictationLanguage(event.payload.dictation?.active_language ?? null);
@@ -548,6 +546,7 @@ export default function PostIt({
       let savedPath: string | undefined;
       while (true) {
         const currentContent = getLiveContent();
+        const geometry = await readNoteGeometry();
         const updatePath = originalPath || savedDraftPathRef.current;
         if (isSticked && isPinned && currentStickedId && !pinnedClosedRef.current) {
           await invoke("update_sticked_note", {
@@ -560,14 +559,21 @@ export default function PostIt({
             if (locked) {
               await invoke("save_locked_note", { path: updatePath, content: currentContent });
             } else {
-              await invoke("update_note", { path: updatePath, content: currentContent, preserveEmpty: true });
+              await invoke("update_note", {
+                path: updatePath,
+                content: currentContent,
+                preserveEmpty: true,
+                ...(geometry ? { geometry } : {}),
+              });
             }
           }
           savedPath = updatePath;
         } else {
           if (isMarkdownEffectivelyEmpty(currentContent) || (!isSticked && isCaptureSlashQuery(currentContent))) return savedPath;
           const targetFolder = await resolveFolderForAction();
-          const path = await onSave(currentContent, targetFolder);
+          const path = geometry
+            ? await onSave(currentContent, targetFolder, geometry)
+            : await onSave(currentContent, targetFolder);
           savedPath = typeof path === "string" ? path : undefined;
           // Keep the created file across pending input and failed retries;
           // subsequent snapshots update it instead of creating duplicate notes.
@@ -591,7 +597,7 @@ export default function PostIt({
   const acceptTransferRef = useRef(async (_payload: { content: string; folder: string }) => {});
   acceptTransferRef.current = async (payload) => {
     if (transferInProgressRef.current || closeSaveRef.current || document.body.inert ||
-      (window as unknown as { __stikDictationHoldOpen?: boolean }).__stikDictationHoldOpen) {
+      (window as unknown as { __stixDictationHoldOpen?: boolean }).__stixDictationHoldOpen) {
       throw new Error(t("common.saving"));
     }
     transferInProgressRef.current = true;
@@ -636,12 +642,12 @@ export default function PostIt({
 
   useAppQuit(async () => {
     if (transferInProgressRef.current) throw new Error(t("common.saving"));
-    if ((window as unknown as { __stikDictationHoldOpen?: boolean }).__stikDictationHoldOpen) {
+    if ((window as unknown as { __stixDictationHoldOpen?: boolean }).__stixDictationHoldOpen) {
       throw new Error(t("postit.finishDictationBeforeQuit"));
     }
     if (closeSaveRef.current) await closeSaveRef.current;
     await persistDraft();
-    if ((window as unknown as { __stikDictationHoldOpen?: boolean }).__stikDictationHoldOpen) {
+    if ((window as unknown as { __stixDictationHoldOpen?: boolean }).__stixDictationHoldOpen) {
       throw new Error(t("postit.finishDictationBeforeQuit"));
     }
   }, (error) => setToast(errorMessage(error, t("postit.saveFailed"))));
@@ -666,8 +672,11 @@ export default function PostIt({
     closeSaveRef.current = (async () => {
       let savedPath = await persistDraft();
       if (isSticked && isPinned && currentStickedId && !pinnedClosedRef.current) {
+        const geometry = await readNoteGeometry();
         savedPath = await invoke<string>("close_sticked_note", {
-          id: currentStickedId, saveToFolder: true,
+          id: currentStickedId,
+          saveToFolder: true,
+          ...(geometry ? { geometry } : {}),
         });
         pinnedClosedRef.current = true;
         savedDraftPathRef.current = savedPath || undefined;
@@ -703,14 +712,21 @@ export default function PostIt({
     setToast(message);
   }, []);
 
-  // Handle escape to save and close (for capture mode and unpinned sticked notes)
-  // When vim mode is enabled, Escape is handled entirely by the vim plugin — close is via :q/:wq
+  // Escape sinks the sticker under other windows. Grave+Escape (` / ё) raises
+  // the last one. Vim keeps Escape for :q / :wq; save and delete are the buttons.
   useEffect(() => {
-    if (isSticked && isPinned) return;
-    if (vimEnabled) return; // Vim mode uses command bar (:q, :wq) instead of Escape
+    let graveDown = false;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === "Backquote") graveDown = true;
       if (e.key !== "Escape") return;
+
+      if (graveDown) {
+        e.preventDefault();
+        void invoke("raise_last_sticker");
+        return;
+      }
+      if (vimEnabled) return;
 
       const target = e.target as Element | null;
       const inLinkPopover = Boolean(target?.closest(".link-popover"));
@@ -727,8 +743,6 @@ export default function PostIt({
         return;
       }
 
-      // Dismiss folder picker on Escape — next Escape will save/close.
-      // Guard: only when CM6 hasn't already handled this Escape (autocomplete close).
       if (showPicker && !e.defaultPrevented && !isAutocompleteOpen) {
         setShowPicker(false);
         editorRef.current?.focus();
@@ -736,7 +750,7 @@ export default function PostIt({
       }
 
       if (
-        shouldSaveOnGlobalEscape({
+        shouldSinkOnEscape({
           defaultPrevented: e.defaultPrevented,
           inLinkPopover,
           isCopyMenuOpen,
@@ -746,21 +760,33 @@ export default function PostIt({
           isPinning,
         })
       ) {
-        void handleSaveAndClose();
+        e.preventDefault();
+        (window as unknown as { __stixSunk?: boolean }).__stixSunk = true;
+        void invoke("sink_focused_sticker");
       }
     };
 
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === "Backquote") graveDown = false;
+    };
+    const clearGrave = () => {
+      graveDown = false;
+    };
+
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    window.addEventListener("blur", clearGrave);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+      window.removeEventListener("blur", clearGrave);
+    };
   }, [
     showPicker,
     isSaving,
     isPinning,
-    isSticked,
-    isPinned,
     isCopyMenuOpen,
     vimEnabled,
-    handleSaveAndClose,
   ]);
 
   // Toggling Zen also writes it to settings so the mode survives a restart
@@ -769,7 +795,7 @@ export default function PostIt({
   const toggleZenMode = useCallback(() => {
     setZenMode((prev) => {
       const next = !prev;
-      invoke<StikSettings>("get_settings")
+      invoke<StixSettings>("get_settings")
         .then((s) =>
           invoke("save_settings", {
             settings: { ...s, zen_mode_enabled: next },
@@ -784,7 +810,7 @@ export default function PostIt({
   useEffect(() => {
     // `??` not `||`: an empty string means the user cleared this shortcut
     // deliberately (#92), so nothing should be bound at all.
-    const shortcutStr = systemShortcuts.zen_mode ?? "Cmd+Period";
+    const shortcutStr = systemShortcuts.zen_mode ?? "Ctrl+Option+Period";
     if (!shortcutStr) return;
     const handleZenToggle = (e: KeyboardEvent) => {
       if (!matchesShortcut(shortcutStr, e)) return;
@@ -796,10 +822,10 @@ export default function PostIt({
     return () => window.removeEventListener("keydown", handleZenToggle);
   }, [systemShortcuts.zen_mode, toggleZenMode]);
 
-  // Dictation shortcut (reads from settings, defaults to Cmd+Shift+D)
+  // Dictation shortcut (reads from settings, defaults to Ctrl+Option+D)
   useEffect(() => {
     // Cleared means unbound, same as zen mode above (#92).
-    const shortcutStr = systemShortcuts.dictation ?? "Cmd+Shift+D";
+    const shortcutStr = systemShortcuts.dictation ?? "Ctrl+Option+D";
     if (!shortcutStr) return;
     const handleDictation = (e: KeyboardEvent) => {
       if (document.body.inert || transferInProgressRef.current) return;
@@ -849,11 +875,11 @@ export default function PostIt({
       if (newSize !== null && newSize !== fontSize) {
         e.preventDefault();
         setFontSize(newSize);
-        invoke<StikSettings>("get_settings")
+        invoke<StixSettings>("get_settings")
           .then((s) =>
             invoke("save_settings", { settings: { ...s, font_size: newSize } }),
           )
-          .then(() => invoke<StikSettings>("get_settings"))
+          .then(() => invoke<StixSettings>("get_settings"))
           .then((s) => getCurrentWindow().emit("settings-changed", s))
           .catch(() => {});
       } else if (newSize !== null) {
@@ -957,7 +983,7 @@ export default function PostIt({
         } else {
           const activeElement = document.activeElement as HTMLElement | null;
           const shouldRestoreEditorFocus =
-            !!activeElement?.closest(".stik-editor");
+            !!activeElement?.closest(".stix-editor");
 
           if (shouldRestoreEditorFocus) {
             editorRef.current?.blur();
@@ -1004,8 +1030,8 @@ export default function PostIt({
   // Pin from capture mode
   const handlePin = useCallback(async () => {
     if (isPinning || isSaving || transferInProgressRef.current || pendingSaveRef.current ||
-      closeSaveRef.current || document.body.inert || isMarkdownEffectivelyEmpty(getLiveContent())) return;
-    if ((window as unknown as { __stikDictationHoldOpen?: boolean }).__stikDictationHoldOpen) {
+      closeSaveRef.current || document.body.inert) return;
+    if ((window as unknown as { __stixDictationHoldOpen?: boolean }).__stixDictationHoldOpen) {
       showToast(t("postit.finishDictationBeforeQuit"));
       return;
     }
@@ -1041,7 +1067,7 @@ export default function PostIt({
 
     if (isPinned) {
       // Unpin: transfer content to main capture window and close this one
-      if ((window as unknown as { __stikDictationHoldOpen?: boolean }).__stikDictationHoldOpen) {
+      if ((window as unknown as { __stixDictationHoldOpen?: boolean }).__stixDictationHoldOpen) {
         showToast(t("postit.finishDictationBeforeQuit"));
         return;
       }
@@ -1080,7 +1106,7 @@ export default function PostIt({
       }
     } else {
       // Pin: create new sticked note entry and proper window
-      if ((window as unknown as { __stikDictationHoldOpen?: boolean }).__stikDictationHoldOpen) {
+      if ((window as unknown as { __stixDictationHoldOpen?: boolean }).__stixDictationHoldOpen) {
         showToast(t("postit.finishDictationBeforeQuit"));
         return;
       }
@@ -1147,6 +1173,33 @@ export default function PostIt({
       showToast(errorMessage(error, t("common.somethingWentWrong")));
     }
   }, [stickedId, currentStickedId, isPinned, showToast, t]);
+
+  const handleDeleteAndClose = useCallback(async () => {
+    if (closeSaveRef.current || isSaving) return;
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+
+    const idToClose = currentStickedId || stickedId;
+    const path = originalPath || savedDraftPathRef.current;
+
+    try {
+      if (path) await invoke("delete_note", { path });
+      if (isSticked && isPinned && currentStickedId && !pinnedClosedRef.current) {
+        await invoke("close_sticked_note", {
+          id: currentStickedId,
+          saveToFolder: false,
+        });
+        pinnedClosedRef.current = true;
+      }
+      if (isSticked && idToClose) {
+        await invoke("close_sticked_window", { id: idToClose });
+      } else {
+        clearCapture();
+        await onClose();
+      }
+    } catch (error) {
+      setToast(errorMessage(error, t("postit.deleteFailed")));
+    }
+  }, [isSaving, isSticked, isPinned, currentStickedId, stickedId, originalPath, clearCapture, onClose, t]);
 
   const handleContentChange = useCallback(
     (newContent: string) => {
@@ -1345,6 +1398,12 @@ export default function PostIt({
             y: position.y,
           });
         }
+        if (originalPath) {
+          const geometry = await readNoteGeometry();
+          if (geometry) {
+            await invoke("save_note_window_geometry", { path: originalPath, geometry });
+          }
+        }
       } catch (error) {
         console.error("Failed to save position/size:", error);
       }
@@ -1386,7 +1445,7 @@ export default function PostIt({
       unlistenResize?.();
       clearTimeout(timeout);
     };
-  }, [isSticked, currentStickedId, isPinned, isViewing]);
+  }, [isSticked, currentStickedId, isPinned, isViewing, originalPath]);
 
   // Save capture window size + position on resize/move (capture mode only — not sticked/viewing)
   useEffect(() => {
@@ -1411,6 +1470,13 @@ export default function PostIt({
           x: position.x,
           y: position.y,
         });
+        const draftPath = savedDraftPathRef.current;
+        if (draftPath) {
+          const geometry = await readNoteGeometry();
+          if (geometry) {
+            await invoke("save_note_window_geometry", { path: draftPath, geometry });
+          }
+        }
       } catch (error) {
         console.error("Failed to save capture window geometry:", error);
       }
@@ -1483,7 +1549,7 @@ export default function PostIt({
       if (!path) return;
       try {
         const noteContent = await invoke<string>("get_note_content", { path });
-        // Extract folder from path: ~/Documents/Stik/<folder>/<file>.md
+        // Extract folder from path: ~/Documents/Stix/<folder>/<file>.md
         const parts = path.split("/");
         const noteFolder = parts[parts.length - 2] || folder;
         await invoke("open_note_for_viewing", {
@@ -1584,7 +1650,7 @@ export default function PostIt({
       <div
         inert={isSaving}
         aria-busy={isSaving}
-        className={`w-full h-full rounded-[14px] overflow-hidden flex flex-col ${
+        className={`stix-note w-full h-full rounded-[14px] overflow-hidden flex flex-col ${
           isSticked && isPinned ? "sticked-note" : ""
         } ${zenMode ? "zen-mode" : ""}`}
         style={{ backgroundColor: `rgb(var(--color-bg) / ${windowOpacity})` }}
@@ -1605,12 +1671,8 @@ export default function PostIt({
                   <button
                     data-capture-hide
                     onClick={handlePin}
-                    disabled={!hasMeaningfulContent || isPinning}
-                    className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors ${
-                      hasMeaningfulContent
-                        ? "hover:bg-coral-light text-coral hover:text-coral"
-                        : "text-stone/50 cursor-not-allowed"
-                    }`}
+                    disabled={isPinning}
+                    className="w-6 h-6 flex items-center justify-center rounded-md transition-colors hover:bg-coral-light text-coral hover:text-coral"
                     title={t("postit.pinToScreen")}
                     aria-label={t("postit.pinToScreen")}
                   >
@@ -1677,7 +1739,7 @@ export default function PostIt({
                   >
                     ●
                   </span>
-                  <span>{folder || "Stik"}</span>
+                  <span>{folder || "Stix"}</span>
                   <span className="text-[8px] opacity-50">▼</span>
                 </button>
 
@@ -1730,7 +1792,7 @@ export default function PostIt({
                   )}
 
                   {isCopyMenuOpen && (
-                    <div role="menu" aria-label={t("postit.actions")} className="absolute top-full right-0 mt-1 w-40 rounded-lg border border-line bg-bg shadow-stik overflow-hidden z-[240]">
+                    <div role="menu" aria-label={t("postit.actions")} className="absolute top-full right-0 mt-1 w-40 rounded-lg border border-line bg-bg shadow-stix overflow-hidden z-[240]">
                       <button
                         type="button"
                         role="menuitem"
@@ -1789,8 +1851,8 @@ export default function PostIt({
                     // current session reflects the choice immediately.
                     try {
                       const current =
-                        await invoke<StikSettings>("get_settings");
-                      const next: StikSettings = {
+                        await invoke<StixSettings>("get_settings");
+                      const next: StixSettings = {
                         ...current,
                         dictation: {
                           active_model: modelId,
@@ -1883,22 +1945,52 @@ export default function PostIt({
                       {t("common.save")}
                     </button>
                   </div>
-                ) : isSticked ? (
-                  <button
-                    onClick={handleSaveAndClose}
-                    className="px-2.5 py-1.5 bg-coral-light text-coral rounded-lg text-[10px] font-semibold hover:bg-coral hover:text-white transition-colors cursor-pointer"
-                    title={t("postit.saveAndClose")}
-                  >
-                    {t("common.esc")}
-                  </button>
                 ) : (
-                  <button
-                    onClick={handleSaveAndClose}
-                    className="px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-colors bg-coral-light text-coral hover:bg-coral hover:text-white cursor-pointer"
-                    title={t("postit.saveAndClose")}
-                  >
-                    {t("common.esc")}
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={handleSaveAndClose}
+                      className="flex h-7 w-7 items-center justify-center rounded-lg text-stone transition-colors hover:bg-line hover:text-ink cursor-pointer"
+                      title={t("postit.saveAndClose")}
+                      aria-label={t("postit.saveAndClose")}
+                    >
+                      <svg
+                        viewBox="0 0 16 16"
+                        className="h-3.5 w-3.5"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M3.5 2.5h6.8L13.5 5.7V13.5h-10z" />
+                        <path d="M5.5 2.5V6h4.2V2.5" />
+                        <path d="M5.5 13.5v-3.8h5V13.5" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => void handleDeleteAndClose()}
+                      className="flex h-7 w-7 items-center justify-center rounded-lg bg-coral-light text-coral transition-colors hover:bg-coral hover:text-white cursor-pointer"
+                      title={t("postit.deleteAndClose")}
+                      aria-label={t("postit.deleteAndClose")}
+                    >
+                      <svg
+                        viewBox="0 0 16 16"
+                        className="h-3.5 w-3.5"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M3 4.5h10" />
+                        <path d="M6.2 4.4V3h3.6v1.4" />
+                        <path d="M4.4 4.5l.6 8.5h6l.6-8.5" />
+                        <path d="M7 7v3.5M9 7v3.5" />
+                      </svg>
+                    </button>
+                  </div>
                 )}
               </div>
             </>
@@ -2011,14 +2103,13 @@ export default function PostIt({
             >
               <span className="flex items-center gap-2 font-mono text-stone">
                 <span>
-                  <span className="text-coral">~</span>/Stik/
+                  <span className="text-coral">~</span>/Stix/
                   {folder && (
                     <>
                       <span className="text-coral">{folder}</span>/
                     </>
                   )}
                 </span>
-                <SyncIndicator enabled={icloudEnabled} />
               </span>
               <div className="flex items-center gap-2">
                 {vimEnabled ? (
@@ -2037,11 +2128,7 @@ export default function PostIt({
                   <span className="text-stone">
                     <span className="text-amber-500">○</span>  {t("postit.unpinned")}
                   </span>
-                ) : (
-                  <span className="text-stone">
-                    <span className="text-coral">✦</span>  {t("postit.markdownSupported")}
-                  </span>
-                )}
+                ) : null}
                 {(onOpenSettings || isSticked) && (
                   <span data-capture-hide className="contents">
                     {!vimEnabled && (
@@ -2051,7 +2138,7 @@ export default function PostIt({
                           setFormatToolbar(next);
                           try {
                             localStorage.setItem(
-                              "stik:format-toolbar",
+                              "stix:format-toolbar",
                               next ? "1" : "0",
                             );
                           } catch {}
@@ -2086,7 +2173,7 @@ export default function PostIt({
                     <button
                       onClick={() => invoke("open_command_palette")}
                       className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-line text-stone hover:text-ink transition-colors"
-                      title={`${t("postit.commandPalette")} (${formatShortcutDisplay(systemShortcuts.search || "Cmd+Shift+P")})`}
+                      title={`${t("postit.commandPalette")} (${formatShortcutDisplay(systemShortcuts.search || "Ctrl+Option+P")})`}
                     >
                       <svg
                         width="14"
@@ -2107,7 +2194,7 @@ export default function PostIt({
                         isSticked ? invoke("open_settings") : onOpenSettings?.()
                       }
                       className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-line text-stone hover:text-ink transition-colors"
-                      title={`Settings (${formatShortcutDisplay(systemShortcuts.settings || "Cmd+Shift+Comma")})`}
+                      title={`Settings (${formatShortcutDisplay(systemShortcuts.settings || "Ctrl+Option+Comma")})`}
                     >
                       <svg
                         width="14"

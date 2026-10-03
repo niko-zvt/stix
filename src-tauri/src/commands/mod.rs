@@ -1,5 +1,4 @@
 pub mod ai_assistant;
-pub mod analytics;
 pub mod apple_notes;
 pub mod cursor_positions;
 pub mod darwinkit;
@@ -9,9 +8,9 @@ pub mod file_watcher;
 pub mod folders;
 pub mod git_share;
 pub mod health;
-pub mod icloud;
 pub mod index;
 pub mod macos_notify;
+pub mod note_geometry;
 pub mod note_lock;
 pub mod notes;
 pub mod on_this_day;

@@ -1,5 +1,7 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { render, fireEvent, act, waitFor } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { render, fireEvent, act, waitFor, screen } from "@testing-library/react";
+import { invoke } from "@tauri-apps/api/core";
 import { createRef } from "react";
 import { getCM, Vim } from "@replit/codemirror-vim";
 import Editor, { type EditorRef } from "./Editor";
@@ -248,13 +250,151 @@ describe("Editor Vim commands", () => {
 describe("Editor link shortcut", () => {
   it("inserts a link around the selected text through the editor keymap", () => {
     const ref = createRef<EditorRef>();
-    render(<Editor ref={ref} onChange={() => {}} initialContent="Stik" />);
+    render(<Editor ref={ref} onChange={() => {}} initialContent="Stix" />);
     const view = ref.current!.getView()!;
     act(() => view.dispatch({ selection: { anchor: 0, head: 4 } }));
 
     fireEvent.keyDown(view.contentDOM, { key: "k", code: "KeyK", ctrlKey: true });
 
-    expect(view.state.doc.toString()).toBe("[Stik](url)");
+    expect(view.state.doc.toString()).toBe("[Stix](url)");
     expect(view.state.sliceDoc(view.state.selection.main.from, view.state.selection.main.to)).toBe("url");
+  });
+});
+
+describe("Editor text selection", () => {
+  it("keeps note text selectable when the window chrome is not", () => {
+    const css = readFileSync("src/styles/globals.css", "utf8");
+    const root = css.match(/html,\s*body,\s*#root\s*\{[^}]*\}/)?.[0] ?? "";
+    expect(root).not.toMatch(/user-select:\s*none/);
+    expect(css).toMatch(/\.cm-content,\s*\.cm-content \.cm-line\s*\{[^}]*-webkit-user-select:\s*text !important/s);
+    expect(css).toMatch(/\.cm-scroller > \.cm-selectionLayer\s*\{[^}]*contain:\s*none !important/s);
+  });
+
+  it("extends the selection while the pointer drags across the note", () => {
+    const ref = createRef<EditorRef>();
+    render(<Editor ref={ref} onChange={() => {}} initialContent="hello" />);
+    const view = ref.current!.getView()!;
+    view.posAndSideAtCoords = (coords) => ({
+      pos: coords.x < 30 ? 0 : 5,
+      assoc: 1,
+    });
+
+    fireEvent.mouseDown(view.contentDOM, { button: 0, clientX: 10, clientY: 12 });
+    fireEvent.mouseMove(document, { buttons: 1, clientX: 80, clientY: 12 });
+    fireEvent.mouseUp(document, { button: 0, clientX: 80, clientY: 12 });
+
+    expect(view.state.selection.main.from).toBe(0);
+    expect(view.state.selection.main.to).toBe(5);
+  });
+
+  it("keeps a left-drag selection when mousemove reports no buttons", () => {
+    const ref = createRef<EditorRef>();
+    render(<Editor ref={ref} onChange={() => {}} initialContent="hello" />);
+    const view = ref.current!.getView()!;
+    view.posAtCoords = (coords) => (coords.x < 30 ? 0 : 5);
+
+    const down = new MouseEvent("mousedown", {
+      button: 0,
+      detail: 1,
+      clientX: 10,
+      clientY: 12,
+      bubbles: true,
+      cancelable: true,
+    });
+    view.contentDOM.dispatchEvent(down);
+    document.dispatchEvent(new MouseEvent("mousemove", {
+      buttons: 0,
+      clientX: 80,
+      clientY: 12,
+      bubbles: true,
+    }));
+    document.dispatchEvent(new MouseEvent("mouseup", {
+      button: 0,
+      clientX: 80,
+      clientY: 12,
+      bubbles: true,
+    }));
+
+    expect(down.defaultPrevented).toBe(false);
+    expect(view.state.selection.main.from).toBe(0);
+    expect(view.state.selection.main.to).toBe(5);
+  });
+
+  it("inserts a latex block from the format toolbar", () => {
+    const ref = createRef<EditorRef>();
+    render(<Editor ref={ref} onChange={() => {}} initialContent="E=mc^2" showFormatToolbar />);
+    const view = ref.current!.getView()!;
+    act(() => view.dispatch({ selection: { anchor: 0, head: view.state.doc.length } }));
+    fireEvent.click(screen.getByRole("button", { name: "Formula" }));
+    expect(ref.current!.getText()).toBe("$$\nE=mc^2\n$$");
+  });
+
+  it("renders a latex block while the cursor is outside it", () => {
+    const ref = createRef<EditorRef>();
+    render(<Editor ref={ref} onChange={() => {}} initialContent={"$$\nE=mc^2\n$$\n\nnote"} />);
+    const view = ref.current!.getView()!;
+    act(() => view.dispatch({ selection: { anchor: view.state.doc.length } }));
+    const math = view.dom.querySelector(".cm-math");
+    expect(math?.tagName).toBe("SPAN");
+    expect(math?.querySelector(".katex")).not.toBeNull();
+    expect(math?.querySelector(".katex-display")).toBeNull();
+    expect(view.dom.textContent).toContain("note");
+  });
+
+  it("renders an inline formula in the same line as the surrounding text", () => {
+    const ref = createRef<EditorRef>();
+    render(<Editor ref={ref} onChange={() => {}} initialContent="hello $$x=f(y)$$ there" />);
+    const view = ref.current!.getView()!;
+    act(() => view.dispatch({ selection: { anchor: view.state.doc.length } }));
+    const line = view.dom.querySelector(".cm-line");
+    expect(line?.querySelector(".cm-math")?.tagName).toBe("SPAN");
+    expect(line?.querySelector(".katex-display")).toBeNull();
+    expect(line?.textContent).toContain("hello");
+    expect(line?.textContent).toContain("there");
+  });
+});
+
+describe("Editor Control clipboard and history", () => {
+  it("selects, copies, pastes, cuts, and undoes with Control", async () => {
+    let clipboard = "";
+    vi.mocked(invoke).mockImplementation((cmd: unknown, args?: unknown) => {
+      if (cmd === "write_clipboard_text") {
+        clipboard = (args as { text?: string } | undefined)?.text ?? "";
+        return Promise.resolve(null);
+      }
+      if (cmd === "read_clipboard_text") return Promise.resolve(clipboard);
+      return Promise.resolve(null);
+    });
+
+    const ref = createRef<EditorRef>();
+    render(<Editor ref={ref} onChange={() => {}} initialContent="hello" />);
+    const view = ref.current!.getView()!;
+    const press = (key: string) =>
+      fireEvent.keyDown(view.contentDOM, {
+        key,
+        code: `Key${key.toUpperCase()}`,
+        ctrlKey: true,
+      });
+
+    act(() => view.dispatch({ selection: { anchor: 0, head: 5 } }));
+    press("c");
+    await waitFor(() => expect(clipboard).toBe("hello"));
+
+    act(() => view.dispatch({ selection: { anchor: 5, head: 5 } }));
+    press("v");
+    await waitFor(() => expect(view.state.doc.toString()).toBe("hellohello"));
+
+    press("z");
+    expect(view.state.doc.toString()).toBe("hello");
+    press("y");
+    expect(view.state.doc.toString()).toBe("hellohello");
+
+    press("a");
+    expect(view.state.selection.main.from).toBe(0);
+    expect(view.state.selection.main.to).toBe(view.state.doc.length);
+
+    press("x");
+    await waitFor(() => expect(view.state.doc.toString()).toBe(""));
+    expect(clipboard).toBe("hellohello");
   });
 });

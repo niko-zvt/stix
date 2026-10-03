@@ -71,13 +71,6 @@ impl Default for GitSharingSettings {
     }
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[serde(default)]
-pub struct ICloudSettings {
-    pub enabled: bool,
-    pub migrated: bool,
-}
-
 pub use super::note_lock::NoteLockSettings;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -118,7 +111,7 @@ fn default_text_direction() -> String {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct StikSettings {
+pub struct StixSettings {
     pub shortcut_mappings: Vec<ShortcutMapping>,
     pub default_folder: String,
     #[serde(default)]
@@ -139,12 +132,6 @@ pub struct StikSettings {
     pub folder_icons: HashMap<String, String>,
     #[serde(default)]
     pub system_shortcuts: HashMap<String, String>,
-    #[serde(default)]
-    pub analytics_enabled: bool,
-    #[serde(default)]
-    pub analytics_consent_version: u8,
-    #[serde(default)]
-    pub analytics_notice_dismissed: bool,
     #[serde(default)]
     pub load_remote_images: bool,
     #[serde(default = "default_font_size")]
@@ -176,8 +163,6 @@ pub struct StikSettings {
     #[serde(default)]
     pub custom_fonts: Vec<CustomFontEntry>,
     #[serde(default)]
-    pub icloud: ICloudSettings,
-    #[serde(default)]
     pub note_lock: NoteLockSettings,
     #[serde(default)]
     pub use_directory_as_root: bool,
@@ -198,29 +183,29 @@ pub struct StikSettings {
     pub language: String,
 }
 
-impl Default for StikSettings {
+impl Default for StixSettings {
     fn default() -> Self {
         Self {
             default_folder: "Inbox".to_string(),
             language: String::new(),
             shortcut_mappings: vec![
                 ShortcutMapping {
-                    shortcut: "CommandOrControl+Shift+S".to_string(),
+                    shortcut: "Ctrl+Option+S".to_string(),
                     folder: "Inbox".to_string(),
                     enabled: true,
                 },
                 ShortcutMapping {
-                    shortcut: "CommandOrControl+Shift+1".to_string(),
+                    shortcut: "Ctrl+Option+1".to_string(),
                     folder: "Work".to_string(),
                     enabled: true,
                 },
                 ShortcutMapping {
-                    shortcut: "CommandOrControl+Shift+2".to_string(),
+                    shortcut: "Ctrl+Option+2".to_string(),
                     folder: "Ideas".to_string(),
                     enabled: true,
                 },
                 ShortcutMapping {
-                    shortcut: "CommandOrControl+Shift+3".to_string(),
+                    shortcut: "Ctrl+Option+3".to_string(),
                     folder: "Personal".to_string(),
                     enabled: true,
                 },
@@ -234,9 +219,6 @@ impl Default for StikSettings {
             folder_colors: HashMap::new(),
             folder_icons: HashMap::new(),
             system_shortcuts: default_system_shortcuts(),
-            analytics_enabled: false,
-            analytics_consent_version: 0,
-            analytics_notice_dismissed: false,
             load_remote_images: false,
             font_size: 14,
             viewing_window_size: None,
@@ -252,7 +234,6 @@ impl Default for StikSettings {
             font_family: None,
             window_opacity: 1.0,
             custom_fonts: vec![],
-            icloud: ICloudSettings::default(),
             note_lock: NoteLockSettings::default(),
             use_directory_as_root: false,
             zen_mode_enabled: false,
@@ -264,16 +245,79 @@ impl Default for StikSettings {
 
 pub fn default_system_shortcuts() -> HashMap<String, String> {
     HashMap::from([
-        ("search".to_string(), "Cmd+Shift+P".to_string()),
-        ("manager".to_string(), "Cmd+Shift+M".to_string()),
-        ("settings".to_string(), "Cmd+Shift+Comma".to_string()),
-        ("last_note".to_string(), "Cmd+Shift+L".to_string()),
-        ("editor".to_string(), "Cmd+Shift+E".to_string()),
-        ("zen_mode".to_string(), "Cmd+Period".to_string()),
-        ("dictation".to_string(), "Cmd+Shift+D".to_string()),
-        ("voice_note".to_string(), "Cmd+Shift+V".to_string()),
-        ("clip_capture".to_string(), "Cmd+Shift+C".to_string()),
+        ("search".to_string(), "Ctrl+Option+P".to_string()),
+        ("manager".to_string(), "Ctrl+Option+M".to_string()),
+        ("settings".to_string(), "Ctrl+Option+Comma".to_string()),
+        ("last_note".to_string(), "Ctrl+Option+L".to_string()),
+        ("editor".to_string(), "Ctrl+Option+E".to_string()),
+        ("zen_mode".to_string(), "Ctrl+Option+Period".to_string()),
+        ("dictation".to_string(), "Ctrl+Option+D".to_string()),
+        ("voice_note".to_string(), "Ctrl+Option+V".to_string()),
+        ("clip_capture".to_string(), "Ctrl+Option+C".to_string()),
     ])
+}
+
+/// Previous shipping defaults. A stored value is replaced only when it is
+/// still one of these, so a shortcut the user already changed is kept.
+fn previous_default_shortcuts() -> HashMap<String, Vec<String>> {
+    HashMap::from([
+        ("search".to_string(), vec!["Cmd+Shift+P".to_string()]),
+        ("manager".to_string(), vec!["Cmd+Shift+M".to_string()]),
+        ("settings".to_string(), vec!["Cmd+Shift+Comma".to_string()]),
+        ("last_note".to_string(), vec!["Cmd+Shift+L".to_string()]),
+        ("editor".to_string(), vec!["Cmd+Shift+E".to_string()]),
+        ("zen_mode".to_string(), vec!["Cmd+Period".to_string()]),
+        ("dictation".to_string(), vec!["Cmd+Shift+D".to_string()]),
+        ("voice_note".to_string(), vec!["Cmd+Shift+V".to_string()]),
+        ("clip_capture".to_string(), vec!["Cmd+Shift+C".to_string()]),
+    ])
+}
+
+fn previous_folder_shortcuts() -> HashMap<String, String> {
+    HashMap::from([
+        (
+            "CommandOrControl+Shift+S".to_string(),
+            "Ctrl+Option+S".to_string(),
+        ),
+        ("Cmd+Shift+S".to_string(), "Ctrl+Option+S".to_string()),
+        (
+            "CommandOrControl+Shift+1".to_string(),
+            "Ctrl+Option+1".to_string(),
+        ),
+        ("Cmd+Shift+1".to_string(), "Ctrl+Option+1".to_string()),
+        (
+            "CommandOrControl+Shift+2".to_string(),
+            "Ctrl+Option+2".to_string(),
+        ),
+        ("Cmd+Shift+2".to_string(), "Ctrl+Option+2".to_string()),
+        (
+            "CommandOrControl+Shift+3".to_string(),
+            "Ctrl+Option+3".to_string(),
+        ),
+        ("Cmd+Shift+3".to_string(), "Ctrl+Option+3".to_string()),
+    ])
+}
+
+fn migrate_unchanged_shortcuts(settings: &mut StixSettings) {
+    let defaults = default_system_shortcuts();
+    let previous = previous_default_shortcuts();
+    for (action, old_values) in previous {
+        let Some(current) = settings.system_shortcuts.get(&action) else {
+            continue;
+        };
+        if old_values.iter().any(|old| old == current) {
+            if let Some(updated) = defaults.get(&action) {
+                settings.system_shortcuts.insert(action, updated.clone());
+            }
+        }
+    }
+
+    let folder_shortcuts = previous_folder_shortcuts();
+    for mapping in &mut settings.shortcut_mappings {
+        if let Some(updated) = folder_shortcuts.get(&mapping.shortcut) {
+            mapping.shortcut = updated.clone();
+        }
+    }
 }
 
 /// Actions that are in-app only (not registered as OS-level global shortcuts).
@@ -313,17 +357,14 @@ fn is_valid_active_theme(active_theme: &str, custom_themes: &[CustomThemeDefinit
         || custom_themes.iter().any(|theme| theme.id == active_theme)
 }
 
-fn normalize_loaded_settings(mut settings: StikSettings) -> StikSettings {
-    if settings.analytics_consent_version != 1 {
-        settings.analytics_enabled = false;
-    }
-
+fn normalize_loaded_settings(mut settings: StixSettings) -> StixSettings {
     // The UI has no enable/disable toggle — users delete shortcuts to remove them.
     // Force all visible shortcuts to enabled so stale disabled state can't persist.
     for mapping in &mut settings.shortcut_mappings {
         mapping.enabled = true;
     }
 
+    migrate_unchanged_shortcuts(&mut settings);
     normalize_system_shortcuts(&mut settings.system_shortcuts);
 
     if settings.active_theme.is_empty() && is_legacy_theme_mode(&settings.theme_mode) {
@@ -345,13 +386,13 @@ fn get_settings_path() -> Result<PathBuf, String> {
     Ok(super::paths::config_dir()?.join("settings.json"))
 }
 
-pub(crate) fn load_settings_from_file() -> Result<StikSettings, String> {
+pub(crate) fn load_settings_from_file() -> Result<StixSettings, String> {
     let path = get_settings_path()?;
 
-    let mut settings = match versioning::load_versioned::<StikSettings>(&path)? {
+    let mut settings = match versioning::load_versioned::<StixSettings>(&path)? {
         Some(settings) => normalize_loaded_settings(settings),
         None => {
-            let default_settings = StikSettings::default();
+            let default_settings = StixSettings::default();
             save_settings_to_file(&default_settings)?;
             default_settings
         }
@@ -359,10 +400,7 @@ pub(crate) fn load_settings_from_file() -> Result<StikSettings, String> {
     if let Some(root) = super::paths::dev_root()? {
         settings.notes_directory = root.join("notes").to_string_lossy().into_owned();
         settings.use_directory_as_root = true;
-        settings.icloud.enabled = false;
         settings.git_sharing.enabled = false;
-        settings.analytics_enabled = false;
-        settings.analytics_notice_dismissed = true;
         settings.ai_features_enabled = false;
         settings.auto_update_enabled = false;
         settings.dictation.enabled = false;
@@ -375,17 +413,17 @@ pub(crate) fn load_settings_from_file() -> Result<StikSettings, String> {
     Ok(settings)
 }
 
-fn save_settings_to_file(settings: &StikSettings) -> Result<(), String> {
+fn save_settings_to_file(settings: &StixSettings) -> Result<(), String> {
     let path = get_settings_path()?;
     versioning::save_versioned(&path, settings)
 }
 
 #[tauri::command]
-pub fn get_settings() -> Result<StikSettings, String> {
+pub fn get_settings() -> Result<StixSettings, String> {
     load_settings_from_file()
 }
 
-fn custom_notes_asset_root(settings: &StikSettings) -> Option<PathBuf> {
+fn custom_notes_asset_root(settings: &StixSettings) -> Option<PathBuf> {
     let directory = PathBuf::from(settings.notes_directory.trim());
     if settings.notes_directory.trim().is_empty() || !directory.is_absolute() {
         return None;
@@ -394,13 +432,13 @@ fn custom_notes_asset_root(settings: &StikSettings) -> Option<PathBuf> {
     Some(if settings.use_directory_as_root {
         directory
     } else {
-        directory.join("Stik")
+        directory.join("Stix")
     })
 }
 
 pub(crate) fn allow_custom_notes_asset_scope(
     app: &tauri::AppHandle,
-    settings: &StikSettings,
+    settings: &StixSettings,
 ) -> Result<(), String> {
     let Some(root) = custom_notes_asset_root(settings) else {
         return Ok(());
@@ -412,15 +450,14 @@ pub(crate) fn allow_custom_notes_asset_scope(
         .map_err(|error| format!("Failed to authorize custom note images: {error}"))
 }
 
-pub(crate) fn save_settings_without_app(settings: StikSettings) -> Result<bool, String> {
+pub(crate) fn save_settings_without_app(settings: StixSettings) -> Result<bool, String> {
     save_settings_to_file(&settings)?;
-    super::analytics::configure_analytics(settings.analytics_enabled)?;
     git_share::notify_force_sync();
     Ok(true)
 }
 
 #[tauri::command]
-pub fn save_settings(app: tauri::AppHandle, settings: StikSettings) -> Result<bool, String> {
+pub fn save_settings(app: tauri::AppHandle, settings: StixSettings) -> Result<bool, String> {
     allow_custom_notes_asset_scope(&app, &settings)?;
     save_settings_without_app(settings)
 }
@@ -611,7 +648,7 @@ pub fn export_theme_file(
 mod tests {
     use super::{
         custom_notes_asset_root, default_system_shortcuts, normalize_loaded_settings,
-        normalize_system_shortcuts, parse_color_value, ShortcutMapping, StikSettings,
+        normalize_system_shortcuts, parse_color_value, ShortcutMapping, StixSettings,
     };
     use std::collections::HashMap;
     use std::path::PathBuf;
@@ -629,7 +666,7 @@ mod tests {
         assert_eq!(shortcuts.get("voice_note").map(String::as_str), Some(""));
         assert_eq!(
             shortcuts.get("search").map(String::as_str),
-            Some("Cmd+Shift+P")
+            Some("Ctrl+Option+P")
         );
     }
 
@@ -641,13 +678,13 @@ mod tests {
 
         assert_eq!(
             shortcuts.get("voice_note").map(String::as_str),
-            Some("Cmd+Shift+V")
+            Some("Ctrl+Option+V")
         );
     }
 
     #[test]
     fn normalization_reenables_all_disabled_shortcuts() {
-        let settings = StikSettings {
+        let settings = StixSettings {
             shortcut_mappings: vec![
                 ShortcutMapping {
                     shortcut: "Cmd+Shift+S".to_string(),
@@ -660,20 +697,55 @@ mod tests {
                     enabled: false,
                 },
             ],
-            ..StikSettings::default()
+            ..StixSettings::default()
         };
 
         let normalized = normalize_loaded_settings(settings);
         assert!(normalized.shortcut_mappings[0].enabled);
         assert!(normalized.shortcut_mappings[1].enabled);
+        assert_eq!(normalized.shortcut_mappings[0].shortcut, "Ctrl+Option+S");
+        assert_eq!(normalized.shortcut_mappings[1].shortcut, "Ctrl+Option+1");
+    }
+
+    #[test]
+    fn unchanged_default_shortcuts_move_to_ctrl_option() {
+        let mut shortcuts = default_system_shortcuts();
+        shortcuts.insert("search".to_string(), "Cmd+Shift+P".to_string());
+        shortcuts.insert("voice_note".to_string(), "Ctrl+Option+9".to_string());
+        let settings = StixSettings {
+            system_shortcuts: shortcuts,
+            shortcut_mappings: vec![ShortcutMapping {
+                shortcut: "CommandOrControl+Shift+S".to_string(),
+                folder: "Inbox".to_string(),
+                enabled: true,
+            }],
+            ..StixSettings::default()
+        };
+
+        let normalized = normalize_loaded_settings(settings);
+        assert_eq!(
+            normalized
+                .system_shortcuts
+                .get("search")
+                .map(String::as_str),
+            Some("Ctrl+Option+P")
+        );
+        assert_eq!(
+            normalized
+                .system_shortcuts
+                .get("voice_note")
+                .map(String::as_str),
+            Some("Ctrl+Option+9")
+        );
+        assert_eq!(normalized.shortcut_mappings[0].shortcut, "Ctrl+Option+S");
     }
 
     #[test]
     fn normalization_falls_back_to_legacy_theme_mode_when_active_theme_is_invalid() {
-        let settings = StikSettings {
+        let settings = StixSettings {
             theme_mode: "dark".to_string(),
             active_theme: "removed-custom-theme".to_string(),
-            ..StikSettings::default()
+            ..StixSettings::default()
         };
 
         let normalized = normalize_loaded_settings(settings);
@@ -688,28 +760,21 @@ mod tests {
     }
 
     #[test]
-    fn analytics_defaults_to_no_consent() {
-        let settings = StikSettings::default();
-        assert!(!settings.analytics_enabled);
-        assert_eq!(settings.analytics_consent_version, 0);
-    }
-
-    #[test]
     fn remote_images_are_blocked_by_default() {
-        let settings = StikSettings::default();
+        let settings = StixSettings::default();
         assert!(!settings.load_remote_images);
     }
 
     #[test]
     fn custom_asset_scope_matches_the_selected_vault_layout() {
-        let mut settings = StikSettings {
+        let mut settings = StixSettings {
             notes_directory: "/tmp/My Notes".to_string(),
-            ..StikSettings::default()
+            ..StixSettings::default()
         };
 
         assert_eq!(
             custom_notes_asset_root(&settings),
-            Some(PathBuf::from("/tmp/My Notes/Stik"))
+            Some(PathBuf::from("/tmp/My Notes/Stix"))
         );
 
         settings.use_directory_as_root = true;
@@ -721,43 +786,17 @@ mod tests {
 
     #[test]
     fn relative_or_empty_custom_directories_never_enter_the_asset_scope() {
-        let mut settings = StikSettings::default();
+        let mut settings = StixSettings::default();
         assert_eq!(custom_notes_asset_root(&settings), None);
 
         settings.notes_directory = "relative/path".to_string();
         assert_eq!(custom_notes_asset_root(&settings), None);
     }
-
-    #[test]
-    fn legacy_analytics_state_is_reset_until_the_user_makes_a_choice() {
-        let settings = StikSettings {
-            analytics_enabled: true,
-            analytics_consent_version: 0,
-            ..StikSettings::default()
-        };
-
-        let normalized = normalize_loaded_settings(settings);
-
-        assert!(!normalized.analytics_enabled);
-    }
-
-    #[test]
-    fn explicit_analytics_consent_survives_normalization() {
-        let settings = StikSettings {
-            analytics_enabled: true,
-            analytics_consent_version: 1,
-            ..StikSettings::default()
-        };
-
-        let normalized = normalize_loaded_settings(settings);
-
-        assert!(normalized.analytics_enabled);
-    }
 }
 
 // ── Custom Fonts ─────────────────────────────────────────────────
 //
-// Imported fonts are copied into ~/.stik/fonts rather than referenced where the
+// Imported fonts are copied into ~/.stix/fonts rather than referenced where the
 // user found them. A path under Downloads breaks as soon as the file moves, and
 // the asset protocol's scope does not reach outside the notes folder anyway.
 // The bytes go back to the webview as a data: URL, which avoids the asset
@@ -818,7 +857,7 @@ pub fn import_font_file(path: String) -> Result<CustomFontEntry, String> {
     let destination = fonts_dir()?.join(file_name);
     if source != destination {
         fs::copy(source, &destination)
-            .map_err(|e| format!("Failed to copy font into ~/.stik/fonts: {}", e))?;
+            .map_err(|e| format!("Failed to copy font into ~/.stix/fonts: {}", e))?;
     }
 
     Ok(CustomFontEntry {
@@ -842,7 +881,7 @@ pub fn load_font_data(path: String) -> Result<String, String> {
         .canonicalize()
         .map_err(|e| format!("Fonts directory unavailable: {}", e))?;
     if !canonical.starts_with(&dir) {
-        return Err("Fonts can only be loaded from ~/.stik/fonts".to_string());
+        return Err("Fonts can only be loaded from ~/.stix/fonts".to_string());
     }
 
     let bytes = fs::read(&canonical).map_err(|e| format!("Failed to read font: {}", e))?;
@@ -891,7 +930,7 @@ mod font_tests {
     #[test]
     fn load_font_data_refuses_paths_outside_the_fonts_directory() {
         // Guards the arbitrary-read primitive: a font extension alone is not
-        // enough, the file has to live in ~/.stik/fonts.
+        // enough, the file has to live in ~/.stix/fonts.
         // No extension at all.
         let err = load_font_data("/etc/passwd".to_string()).unwrap_err();
         assert!(err.contains("no extension"), "got: {err}");
@@ -900,11 +939,11 @@ mod font_tests {
         let err = load_font_data("/etc/hosts.env".to_string()).unwrap_err();
         assert!(err.contains("Unsupported font format"), "got: {err}");
 
-        // Font extension, but outside ~/.stik/fonts — the case that matters.
-        let outside = std::env::temp_dir().join("stik-outside-fonts-dir.ttf");
+        // Font extension, but outside ~/.stix/fonts — the case that matters.
+        let outside = std::env::temp_dir().join("stix-outside-fonts-dir.ttf");
         fs::write(&outside, b"not really a font").unwrap();
         let err = load_font_data(outside.to_string_lossy().to_string()).unwrap_err();
-        assert!(err.contains("~/.stik/fonts"), "got: {err}");
+        assert!(err.contains("~/.stix/fonts"), "got: {err}");
         let _ = fs::remove_file(&outside);
     }
 }

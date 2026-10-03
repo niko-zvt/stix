@@ -8,7 +8,7 @@ interface GlobalEscapeState {
   isPinning: boolean;
 }
 
-export function shouldSaveOnGlobalEscape(state: GlobalEscapeState): boolean {
+export function shouldSinkOnEscape(state: GlobalEscapeState): boolean {
   if (state.defaultPrevented) return false;
   if (state.inLinkPopover) return false;
   if (state.isCopyMenuOpen) return false;

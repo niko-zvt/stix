@@ -1,13 +1,13 @@
 import { useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import type { StikSettings } from "@/types";
+import type { StixSettings } from "@/types";
 import { resolveTheme, applyThemeToDOM } from "@/themes";
 
 export function useTheme() {
   useEffect(() => {
     let activeThemeId = "";
-    let customThemes: StikSettings["custom_themes"] = [];
+    let customThemes: StixSettings["custom_themes"] = [];
 
     function apply() {
       const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -15,7 +15,7 @@ export function useTheme() {
       applyThemeToDOM(colors, isDark);
     }
 
-    invoke<StikSettings>("get_settings")
+    invoke<StixSettings>("get_settings")
       .then((s) => {
         activeThemeId = s.active_theme || s.theme_mode || "";
         customThemes = s.custom_themes ?? [];
@@ -23,7 +23,7 @@ export function useTheme() {
       })
       .catch(() => apply());
 
-    const unlistenSettings = listen<StikSettings>("settings-changed", (e) => {
+    const unlistenSettings = listen<StixSettings>("settings-changed", (e) => {
       activeThemeId = e.payload.active_theme || e.payload.theme_mode || "";
       customThemes = e.payload.custom_themes ?? [];
       apply();

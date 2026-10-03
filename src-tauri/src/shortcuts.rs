@@ -1,4 +1,4 @@
-use crate::commands::settings::{self, StikSettings};
+use crate::commands::settings::{self, StixSettings};
 use crate::state::AppState;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
@@ -201,7 +201,7 @@ pub fn shortcut_to_string(shortcut: &Shortcut) -> String {
     parts.join("+")
 }
 
-pub fn register_shortcuts_from_settings(app: &AppHandle, settings: &StikSettings) {
+pub fn register_shortcuts_from_settings(app: &AppHandle, settings: &StixSettings) {
     let state = app.state::<AppState>();
     let mut map = state
         .shortcut_to_folder

@@ -2,7 +2,7 @@ import { useCallback, useEffect, type ReactNode } from "react";
 import { matchesEitherPrimary } from "@/utils/matchShortcut";
 import { invoke } from "@tauri-apps/api/core";
 import { emit } from "@tauri-apps/api/event";
-import type { StikSettings } from "@/types";
+import type { StixSettings } from "@/types";
 import { useTheme } from "@/hooks/useTheme";
 
 /// Mounts theming for a window root.
@@ -27,8 +27,8 @@ export default function ThemeProvider({ children }: Props) {
 
     void (async () => {
       try {
-        const settings = await invoke<StikSettings>("get_settings");
-        const updated: StikSettings = { ...settings, active_theme: theme };
+        const settings = await invoke<StixSettings>("get_settings");
+        const updated: StixSettings = { ...settings, active_theme: theme };
         await invoke("save_settings", { settings: updated });
         await emit("settings-changed", updated);
       } catch (error) {

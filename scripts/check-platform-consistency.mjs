@@ -42,11 +42,6 @@ await Promise.all([
     "the Homebrew support requirement",
   ),
   requireText(
-    ".github/workflows/release.yml",
-    expectedCaskRequirement,
-    "the generated Homebrew support requirement",
-  ),
-  requireText(
     ".github/workflows/ci.yml",
     expectedRunner,
     "the macOS CI runner",
@@ -69,7 +64,6 @@ await Promise.all([
     requireText(`.github/workflows/${workflow}.yml`, "DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer", "a compatible pinned Swift build toolchain"),
   ),
   requireText(".github/workflows/beta.yml", '--target "$GITHUB_SHA"', "the exact beta build revision"),
-  requireText(".github/workflows/release.yml", "if: github.event_name == 'release' && !github.event.release.prerelease", "published stable assets before distribution updates"),
 ]);
 
 if (failures.length > 0) {

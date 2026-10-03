@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
-use super::settings::StikSettings;
+use super::settings::StixSettings;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FolderStats {
@@ -73,8 +73,8 @@ fn is_visible_folder_name(name: &str) -> bool {
     !trimmed.is_empty() && !trimmed.starts_with('.')
 }
 
-fn list_visible_folder_names(stik_folder: &Path) -> Result<Vec<String>, String> {
-    let path_str = stik_folder.to_string_lossy();
+fn list_visible_folder_names(stix_folder: &Path) -> Result<Vec<String>, String> {
+    let path_str = stix_folder.to_string_lossy();
     let entries = super::storage::list_dir(&path_str)?;
     let mut folders: Vec<String> = entries
         .into_iter()
@@ -86,12 +86,12 @@ fn list_visible_folder_names(stik_folder: &Path) -> Result<Vec<String>, String> 
     Ok(folders)
 }
 
-fn uses_folder_root_layout(settings: &StikSettings) -> bool {
+fn uses_folder_root_layout(settings: &StixSettings) -> bool {
     !settings
         .git_sharing
         .repository_layout
         .trim()
-        .eq_ignore_ascii_case("stik_root")
+        .eq_ignore_ascii_case("stix_root")
 }
 
 fn folder_suffix<'a>(path: &'a str, parent: &str) -> Option<&'a str> {
@@ -106,7 +106,7 @@ fn rename_folder_reference(path: &mut String, old_name: &str, new_name: &str) {
 }
 
 fn reconcile_settings_after_folder_delete(
-    settings: &mut StikSettings,
+    settings: &mut StixSettings,
     deleted_folder: &str,
     fallback_folder: Option<&str>,
 ) {
@@ -137,7 +137,7 @@ fn reconcile_settings_after_folder_delete(
 }
 
 fn reconcile_settings_after_folder_rename(
-    settings: &mut StikSettings,
+    settings: &mut StixSettings,
     old_name: &str,
     new_name: &str,
 ) {
@@ -199,11 +199,11 @@ pub fn validate_name(name: &str) -> Result<(), String> {
 }
 
 /// Folder identifier for a note = its parent directory's path relative to the
-/// Stik root, using '/' separators. Root-level notes return "". Supports nesting.
-pub fn note_folder(stik_root: &Path, note_path: &Path) -> String {
+/// Stix root, using '/' separators. Root-level notes return "". Supports nesting.
+pub fn note_folder(stix_root: &Path, note_path: &Path) -> String {
     note_path
         .parent()
-        .and_then(|p| p.strip_prefix(stik_root).ok())
+        .and_then(|p| p.strip_prefix(stix_root).ok())
         .map(|rel| rel.to_string_lossy().replace('\\', "/"))
         .unwrap_or_default()
 }
@@ -249,23 +249,23 @@ fn collect_folders(root: &Path, dir: &Path, out: &mut Vec<String>) {
     }
 }
 
-/// Get the Stik folder path — delegates to storage abstraction which handles
+/// Get the Stix folder path — delegates to storage abstraction which handles
 /// iCloud, custom directory, and local default modes.
-pub fn get_stik_folder() -> Result<PathBuf, String> {
-    super::storage::stik_root()
+pub fn get_stix_folder() -> Result<PathBuf, String> {
+    super::storage::stix_root()
 }
 
 #[tauri::command]
 pub fn get_notes_directory() -> Result<String, String> {
-    let path = get_stik_folder()?;
+    let path = get_stix_folder()?;
     Ok(path.to_string_lossy().to_string())
 }
 
 #[tauri::command]
 pub fn list_folders() -> Result<Vec<String>, String> {
-    let stik_folder = get_stik_folder()?;
+    let stix_folder = get_stix_folder()?;
     let mut out = Vec::new();
-    collect_folders(&stik_folder, &stik_folder, &mut out);
+    collect_folders(&stix_folder, &stix_folder, &mut out);
     out.sort_unstable();
     Ok(out)
 }
@@ -273,9 +273,9 @@ pub fn list_folders() -> Result<Vec<String>, String> {
 #[tauri::command]
 pub fn create_folder(name: String) -> Result<bool, String> {
     validate_folder_path(&name)?;
-    let stik_folder = get_stik_folder()?;
+    let stix_folder = get_stix_folder()?;
     let folder_path =
-        super::path_security::authorize_new_path(&stik_folder, &stik_folder.join(&name))?;
+        super::path_security::authorize_new_path(&stix_folder, &stix_folder.join(&name))?;
 
     super::storage::ensure_dir(&folder_path.to_string_lossy())?;
 
@@ -290,9 +290,9 @@ pub fn delete_folder(
 ) -> Result<bool, String> {
     validate_folder_path(&name)?;
 
-    let stik_folder = get_stik_folder()?;
+    let stix_folder = get_stix_folder()?;
     let folder_path =
-        super::path_security::authorize_existing_path(&stik_folder, &stik_folder.join(&name))?;
+        super::path_security::authorize_existing_path(&stix_folder, &stix_folder.join(&name))?;
 
     // Check folder exists
     if !super::storage::is_dir(&folder_path.to_string_lossy()) {
@@ -309,7 +309,7 @@ pub fn delete_folder(
     emb_index.remove_by_path_prefix(&prefix);
     let _ = emb_index.save();
 
-    let fallback = list_visible_folder_names(&stik_folder)?.into_iter().next();
+    let fallback = list_visible_folder_names(&stix_folder)?.into_iter().next();
     sync_settings_after_folder_delete(&name, fallback.as_deref())?;
 
     Ok(true)
@@ -334,11 +334,11 @@ pub fn rename_folder_inner(
     validate_folder_path(&old_name)?;
     validate_folder_path(&new_name)?;
 
-    let stik_folder = get_stik_folder()?;
+    let stix_folder = get_stix_folder()?;
     let old_path =
-        super::path_security::authorize_existing_path(&stik_folder, &stik_folder.join(&old_name))?;
+        super::path_security::authorize_existing_path(&stix_folder, &stix_folder.join(&old_name))?;
     let new_path =
-        super::path_security::authorize_new_path(&stik_folder, &stik_folder.join(&new_name))?;
+        super::path_security::authorize_new_path(&stix_folder, &stix_folder.join(&new_name))?;
 
     // Check old folder exists
     if !super::storage::is_dir(&old_path.to_string_lossy()) {
@@ -352,10 +352,10 @@ pub fn rename_folder_inner(
 
     let indexed_notes = index.list(None)?;
     emb_index.ensure_loaded();
-    let canonical_root = stik_folder
+    let canonical_root = stix_folder
         .canonicalize()
         .map_err(|error| error.to_string())?;
-    let requested_old_path = stik_folder.join(&old_name);
+    let requested_old_path = stix_folder.join(&old_name);
 
     // Ensure the destination's parent exists (renaming into a nested path).
     if let Some(parent) = new_path.parent() {
@@ -390,9 +390,9 @@ pub fn rename_folder_inner(
 
 #[tauri::command]
 pub fn get_folder_stats() -> Result<Vec<FolderStats>, String> {
-    let stik_folder = get_stik_folder()?;
-    folder_stats_with(&stik_folder, &|path| {
-        let authorized = super::path_security::authorize_existing_path(&stik_folder, path)?;
+    let stix_folder = get_stix_folder()?;
+    folder_stats_with(&stix_folder, &|path| {
+        let authorized = super::path_security::authorize_existing_path(&stix_folder, path)?;
         super::storage::list_dir(&authorized.to_string_lossy())
     })
 }
@@ -426,10 +426,10 @@ mod tests {
 
     #[test]
     fn note_folder_returns_relative_parent_path() {
-        let root = Path::new("/stik");
-        assert_eq!(note_folder(root, Path::new("/stik/foo.md")), "");
-        assert_eq!(note_folder(root, Path::new("/stik/Inbox/foo.md")), "Inbox");
-        assert_eq!(note_folder(root, Path::new("/stik/A/B/foo.md")), "A/B");
+        let root = Path::new("/stix");
+        assert_eq!(note_folder(root, Path::new("/stix/foo.md")), "");
+        assert_eq!(note_folder(root, Path::new("/stix/Inbox/foo.md")), "Inbox");
+        assert_eq!(note_folder(root, Path::new("/stix/A/B/foo.md")), "A/B");
     }
 
     #[test]
@@ -492,10 +492,10 @@ mod tests {
             modified: None,
         }
     }
-    use crate::commands::settings::{GitSharingSettings, ShortcutMapping, StikSettings};
+    use crate::commands::settings::{GitSharingSettings, ShortcutMapping, StixSettings};
 
-    fn sample_settings() -> StikSettings {
-        StikSettings {
+    fn sample_settings() -> StixSettings {
+        StixSettings {
             default_folder: "Inbox".to_string(),
             shortcut_mappings: vec![
                 ShortcutMapping {
@@ -519,7 +519,7 @@ mod tests {
             },
             folder_colors: HashMap::new(),
             system_shortcuts: HashMap::new(),
-            ..StikSettings::default()
+            ..StixSettings::default()
         }
     }
 

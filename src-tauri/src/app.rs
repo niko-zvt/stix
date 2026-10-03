@@ -1,9 +1,9 @@
 use crate::commands::embeddings::EmbeddingIndex;
 use crate::commands::index::NoteIndex;
 use crate::commands::{
-    ai_assistant, analytics, apple_notes, cursor_positions, darwinkit, dictation, embeddings,
-    file_watcher, folders, git_share, health, icloud, index, macos_notify, note_lock, notes,
-    on_this_day, settings, share, stats, sticked_notes, storage, trash,
+    ai_assistant, apple_notes, cursor_positions, darwinkit, dictation, embeddings, file_watcher,
+    folders, git_share, health, index, macos_notify, note_lock, notes, on_this_day, settings,
+    share, stats, sticked_notes, trash,
 };
 use crate::quit;
 use crate::shortcuts::{self, shortcut_to_string};
@@ -15,8 +15,45 @@ use crate::windows::{
 use tauri::{AppHandle, Emitter, Manager, RunEvent};
 use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState};
 
-fn folder_for_opened_note(path: &std::path::Path, stik_root: &std::path::Path) -> String {
-    path.strip_prefix(stik_root)
+/// WKWebView only delivers Cmd+Z/C/V/A when the process has an Edit menu.
+#[cfg(target_os = "macos")]
+fn install_edit_menu(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+    use tauri::menu::{Menu, PredefinedMenuItem, Submenu};
+
+    let app_menu = Submenu::with_items(
+        app,
+        "Stix",
+        true,
+        &[
+            &PredefinedMenuItem::about(app, Some("About Stix"), None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::hide(app, None)?,
+            &PredefinedMenuItem::hide_others(app, None)?,
+            &PredefinedMenuItem::show_all(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::quit(app, Some("Quit Stix"))?,
+        ],
+    )?;
+    let edit_menu = Submenu::with_items(
+        app,
+        "Edit",
+        true,
+        &[
+            &PredefinedMenuItem::undo(app, None)?,
+            &PredefinedMenuItem::redo(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::cut(app, None)?,
+            &PredefinedMenuItem::copy(app, None)?,
+            &PredefinedMenuItem::paste(app, None)?,
+            &PredefinedMenuItem::select_all(app, None)?,
+        ],
+    )?;
+    app.set_menu(Menu::with_items(app, &[&app_menu, &edit_menu])?)?;
+    Ok(())
+}
+
+fn folder_for_opened_note(path: &std::path::Path, stix_root: &std::path::Path) -> String {
+    path.strip_prefix(stix_root)
         .ok()
         .and_then(std::path::Path::parent)
         .map(|parent| parent.to_string_lossy().replace('\\', "/"))
@@ -58,9 +95,9 @@ fn handle_opened_files(app: &AppHandle, paths: Vec<std::path::PathBuf>) {
                 }
             };
 
-            // Files inside Stik folder get their folder name resolved;
+            // Files inside Stix folder get their folder name resolved;
             // external files get an empty folder (read-only viewing context).
-            let folder = folders::get_stik_folder()
+            let folder = folders::get_stix_folder()
                 .map(|root| folder_for_opened_note(&path, &root))
                 .unwrap_or_default();
 
@@ -97,11 +134,11 @@ static CLIP_PERMISSION_WARNED: std::sync::atomic::AtomicBool =
 fn clip_capture(app: &AppHandle) {
     // Write to a dedicated file so the trace survives across process
     // boundaries and is trivially grep-able. eprintln also goes to the
-    // parent's stderr in debug, but that's swallowed when Stik is
+    // parent's stderr in debug, but that's swallowed when Stix is
     // launched via `open`.
     //
-    // Each call logs a tag with the Stik version + a build marker so
-    // you can check `/tmp/stik-clip.log` and know *which* Stik binary
+    // Each call logs a tag with the Stix version + a build marker so
+    // you can check `/tmp/stix-clip.log` and know *which* Stix binary
     // just ran — useful when iterating rapidly.
     let log = |msg: &str| {
         eprintln!("[clip_capture] {}", msg);
@@ -110,7 +147,7 @@ fn clip_capture(app: &AppHandle) {
             if let Ok(mut f) = std::fs::OpenOptions::new()
                 .create(true)
                 .append(true)
-                .open("/tmp/stik-clip.log")
+                .open("/tmp/stix-clip.log")
             {
                 let _ = writeln!(
                     f,
@@ -150,7 +187,7 @@ fn clip_capture(app: &AppHandle) {
         Some(_) => {
             log("AX read OK but selected text is empty");
             let _ = macos_notify::show(
-                "Stik",
+                "Stix",
                 "Nothing selected",
                 "Highlight some text first, then press the shortcut.",
             );
@@ -159,9 +196,9 @@ fn clip_capture(app: &AppHandle) {
         None => {
             log("AX read failed — app doesn't expose selected text");
             let _ = macos_notify::show(
-                "Stik",
+                "Stix",
                 "Can't read selection",
-                "This app doesn't expose selected text. Copy it manually, then paste into Stik.",
+                "This app doesn't expose selected text. Copy it manually, then paste into Stix.",
             );
             return;
         }
@@ -190,11 +227,11 @@ fn clip_capture(app: &AppHandle) {
             let _ = app.emit("files-changed", vec![result.path.clone()]);
 
             let preview: String = text.lines().next().unwrap_or("").chars().take(60).collect();
-            let _ = macos_notify::show("Stik", &format!("Saved to {}", folder), &preview);
+            let _ = macos_notify::show("Stix", &format!("Saved to {}", folder), &preview);
         }
         Err(e) => {
             log(&format!("save failed: {}", e));
-            let _ = macos_notify::show("Stik", "Save failed", &e);
+            let _ = macos_notify::show("Stix", "Save failed", &e);
         }
     }
 }
@@ -211,20 +248,20 @@ fn warn_about_accessibility() {
     if !already_warned {
         open_accessibility_settings();
         let _ = macos_notify::show(
-            "Stik",
+            "Stix",
             "Accessibility permission needed",
-            "Opened System Settings. Enable Stik, quit + relaunch Stik, then try again.",
+            "Opened System Settings. Enable Stix, quit + relaunch Stix, then try again.",
         );
     } else {
         let _ = macos_notify::show(
-            "Stik",
+            "Stix",
             "Clipboard capture still blocked",
-            "Quit & relaunch Stik after toggling Accessibility back on.",
+            "Quit & relaunch Stix after toggling Accessibility back on.",
         );
     }
 }
 
-/// Checks whether the Stik process currently has Accessibility
+/// Checks whether the Stix process currently has Accessibility
 /// permission, *without* prompting the user. This is the authoritative
 /// TCC query — if it returns false, CGEventPost will silently drop
 /// any keystrokes we send, so there's no point trying.
@@ -322,7 +359,7 @@ fn read_selected_text_via_ax() -> Option<String> {
 }
 
 /// Opens System Settings → Privacy & Security → Accessibility directly,
-/// so the user only has to click the Stik row toggle instead of hunting
+/// so the user only has to click the Stix row toggle instead of hunting
 /// through the Settings tree. The `x-apple.systempreferences:` URL
 /// scheme is accepted on every modern macOS, and the anchor sends the
 /// user straight to the Accessibility pane.
@@ -334,16 +371,12 @@ fn open_accessibility_settings() {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct StartupPlan {
-    build_local_index: bool,
-    start_icloud_monitor: bool,
     build_embeddings: bool,
 }
 
 impl StartupPlan {
-    fn new(icloud_enabled: bool, ai_enabled: bool) -> Self {
+    fn new(ai_enabled: bool) -> Self {
         Self {
-            build_local_index: !icloud_enabled,
-            start_icloud_monitor: icloud_enabled,
             build_embeddings: ai_enabled,
         }
     }
@@ -359,7 +392,7 @@ fn spawn_background(name: &str, job: impl FnOnce() + Send + 'static) {
 }
 
 fn spawn_embeddings(app: AppHandle) {
-    spawn_background("stik-embeddings", move || {
+    spawn_background("stix-embeddings", move || {
         let index = app.state::<NoteIndex>();
         let embeddings_index = app.state::<EmbeddingIndex>();
         embeddings::build_embeddings(&index, &embeddings_index);
@@ -368,88 +401,43 @@ fn spawn_embeddings(app: AppHandle) {
 
 fn start_deferred_services(app: AppHandle, plan: StartupPlan) {
     let service_handle = app.clone();
-    spawn_background("stik-service-bootstrap", move || {
+    spawn_background("stix-service-bootstrap", move || {
         // Register before launching the bridge so no early push notification is
         // lost. Bridge process startup itself happens on its own worker thread.
         if crate::commands::paths::dev_root().ok().flatten().is_some() {
             return; // Isolated QA does not start services with OS/account access.
         }
         dictation::register_notifications(&service_handle);
-        let notification_handle = service_handle.clone();
         darwinkit::register_notification_handler(move |method, params| {
-            if dictation::handle_notification(&method, &params) {
-                return;
-            }
-
-            if method == "icloud.files_changed" {
-                if let Some(paths) = params.get("paths").and_then(|value| value.as_array()) {
-                    let path_strings: Vec<String> = paths
-                        .iter()
-                        .filter_map(|value| value.as_str().map(str::to_string))
-                        .collect();
-
-                    if !path_strings.is_empty() {
-                        file_watcher::handle_changes(&notification_handle, &path_strings);
-                        let _ = notification_handle.emit("icloud-files-changed", &path_strings);
-                    }
-                }
-            }
+            let _ = dictation::handle_notification(&method, &params);
         });
         darwinkit::start_bridge(service_handle.clone());
         git_share::start_background_worker(service_handle.clone());
-        analytics::start_analytics(&service_handle);
     });
 
-    if plan.build_local_index {
-        let index_handle = app.clone();
-        spawn_background("stik-index-bootstrap", move || {
-            let index = index_handle.state::<NoteIndex>();
-            if let Err(error) = index.build() {
-                eprintln!("Failed to build note index: {error}");
-            }
-            file_watcher::start(index_handle.clone());
+    let index_handle = app.clone();
+    spawn_background("stix-index-bootstrap", move || {
+        let index = index_handle.state::<NoteIndex>();
+        if let Err(error) = index.build() {
+            eprintln!("Failed to build note index: {error}");
+        }
+        file_watcher::start(index_handle.clone());
 
-            if plan.build_embeddings {
-                spawn_embeddings(index_handle.clone());
-            }
+        if plan.build_embeddings {
+            spawn_embeddings(index_handle.clone());
+        }
 
-            spawn_background("stik-on-this-day", move || {
-                if let Err(error) = on_this_day::maybe_show_on_this_day_notification() {
-                    eprintln!("Failed to check On This Day notification: {error}");
-                }
-            });
-        });
-    }
-
-    if plan.start_icloud_monitor {
-        let monitor_handle = app.clone();
-        spawn_background("stik-icloud-monitor", move || {
-            // DarwinKit owns coordinated iCloud access. Wait for its bridge,
-            // then build the index and start monitoring away from app setup.
-            for _ in 0..20 {
-                if darwinkit::is_available() {
-                    break;
-                }
-                std::thread::sleep(std::time::Duration::from_millis(500));
-            }
-
-            let index = monitor_handle.state::<NoteIndex>();
-            if let Err(error) = index.build() {
-                eprintln!("Failed to build note index (iCloud): {error}");
-            }
-            if let Err(error) = storage::start_monitoring() {
-                eprintln!("Failed to start iCloud monitoring: {error}");
-            }
-            if plan.build_embeddings {
-                spawn_embeddings(monitor_handle);
+        spawn_background("stix-on-this-day", move || {
+            if let Err(error) = on_this_day::maybe_show_on_this_day_notification() {
+                eprintln!("Failed to check On This Day notification: {error}");
             }
         });
-    }
+    });
 
     // Window creation must happen on the main thread, but queue it from a
     // worker so the setup callback can return and the capture window can paint.
     let restore_handle = app.clone();
-    spawn_background("stik-restore-windows", move || {
+    spawn_background("stix-restore-windows", move || {
         let app_for_restore = restore_handle.clone();
         if let Err(error) = restore_handle.run_on_main_thread(move || {
             windows::restore_sticked_notes(&app_for_restore);
@@ -460,8 +448,8 @@ fn start_deferred_services(app: AppHandle, plan: StartupPlan) {
 }
 
 fn validate_dev_launch(identifier: &str, dev_session: bool) -> Result<(), &'static str> {
-    if identifier == "com.stik.dev" && !dev_session {
-        return Err("Stik Dev requires STIK_DEV_ROOT; launch with scripts/build-dev.sh qa or dev");
+    if identifier == "com.stix.dev" && !dev_session {
+        return Err("Stix Dev requires STIX_DEV_ROOT; launch with scripts/build-dev.sh qa or dev");
     }
     Ok(())
 }
@@ -521,7 +509,7 @@ pub fn run() {
                                 "clip_capture" => {
                                     let app = app.clone();
                                     std::thread::Builder::new()
-                                        .name("stik-clip-capture".to_string())
+                                        .name("stix-clip-capture".to_string())
                                         .spawn(move || {
                                             clip_capture(&app);
                                         })
@@ -585,6 +573,7 @@ pub fn run() {
             trash::purge_trashed_note,
             notes::move_note,
             notes::get_note_content,
+            notes::save_note_window_geometry,
             notes::save_note_image,
             notes::save_note_image_from_path,
             folders::list_folders,
@@ -604,6 +593,8 @@ pub fn run() {
             git_share::git_open_remote_url,
             on_this_day::check_on_this_day_now,
             share::build_clipboard_payload,
+            share::read_clipboard_text,
+            share::write_clipboard_text,
             share::copy_rich_text_to_clipboard,
             share::copy_note_image_to_clipboard,
             share::copy_visible_note_image_to_clipboard,
@@ -615,6 +606,8 @@ pub fn run() {
             sticked_notes::get_sticked_note,
             windows::hide_window,
             windows::hide_postit,
+            windows::sink_focused_sticker,
+            windows::raise_last_sticker,
             windows::create_sticked_window,
             windows::close_sticked_window,
             windows::pin_capture_note,
@@ -645,9 +638,6 @@ pub fn run() {
             darwinkit::darwinkit_call,
             darwinkit::semantic_search,
             darwinkit::suggest_folder,
-            analytics::get_analytics_device_id,
-            analytics::configure_analytics,
-            analytics::reset_analytics_device_id,
             ai_assistant::ai_available,
             ai_assistant::ai_rephrase,
             ai_assistant::ai_summarize,
@@ -661,10 +651,6 @@ pub fn run() {
             cursor_positions::get_cursor_position,
             cursor_positions::save_cursor_position,
             cursor_positions::remove_cursor_position,
-            icloud::icloud_get_status,
-            icloud::icloud_enable,
-            icloud::icloud_disable,
-            icloud::icloud_migrate_notes,
             note_lock::auth_available,
             note_lock::authenticate,
             note_lock::is_authenticated,
@@ -693,8 +679,7 @@ pub fn run() {
             } else {
                 settings::get_settings().unwrap_or_default()
             };
-            let startup_plan =
-                StartupPlan::new(settings.icloud.enabled, settings.ai_features_enabled);
+            let startup_plan = StartupPlan::new(settings.ai_features_enabled);
 
             if let Err(error) = settings::allow_custom_notes_asset_scope(app.handle(), &settings) {
                 eprintln!("Failed to authorize custom note images: {error}");
@@ -717,6 +702,9 @@ pub fn run() {
             tray::setup_tray(app)?;
             #[cfg(target_os = "macos")]
             quit::install(app.handle())?;
+            #[cfg(target_os = "macos")]
+            install_edit_menu(app.handle())?;
+            windows::install_sticker_order_monitor(app.handle());
 
             // Apply tray icon visibility from settings
             if settings.hide_tray_icon {
@@ -746,11 +734,6 @@ pub fn run() {
             }
 
             start_deferred_services(app.handle().clone(), startup_plan);
-            if dev_session {
-                // The empty capture window auto-hides on blur, leaving native
-                // QA connectors without a window to address. Keep QA visible.
-                show_editor(app.handle());
-            }
             eprintln!(
                 "[startup] capture-critical setup completed in {} ms",
                 setup_started.elapsed().as_millis()
@@ -795,52 +778,48 @@ mod tests {
 
     #[test]
     fn dev_bundle_refuses_to_start_without_an_isolated_profile() {
-        assert!(validate_dev_launch("com.stik.dev", false).is_err());
-        assert!(validate_dev_launch("com.stik.dev", true).is_ok());
-        assert!(validate_dev_launch("com.0xmassi.stik", false).is_ok());
+        assert!(validate_dev_launch("com.stix.dev", false).is_err());
+        assert!(validate_dev_launch("com.stix.dev", true).is_ok());
+        assert!(validate_dev_launch("com.stix.app", false).is_ok());
     }
 
     #[test]
-    fn file_in_stik_subfolder_returns_folder_name() {
-        let root = Path::new("/Users/test/Documents/Stik");
-        let path = Path::new("/Users/test/Documents/Stik/Work/20260301-note-abc1.md");
+    fn file_in_stix_subfolder_returns_folder_name() {
+        let root = Path::new("/Users/test/Documents/Stix");
+        let path = Path::new("/Users/test/Documents/Stix/Work/20260301-note-abc1.md");
         assert_eq!(folder_for_opened_note(path, root), "Work");
     }
 
     #[test]
     fn file_directly_in_root_returns_empty() {
-        let root = Path::new("/Users/test/Documents/Stik");
-        let path = Path::new("/Users/test/Documents/Stik/note.md");
+        let root = Path::new("/Users/test/Documents/Stix");
+        let path = Path::new("/Users/test/Documents/Stix/note.md");
         assert_eq!(folder_for_opened_note(path, root), "");
     }
 
     #[test]
     fn nested_subfolder_returns_full_relative_folder_path() {
-        let root = Path::new("/Users/test/Documents/Stik");
-        let path = Path::new("/Users/test/Documents/Stik/Projects/sub/deep/note.md");
+        let root = Path::new("/Users/test/Documents/Stix");
+        let path = Path::new("/Users/test/Documents/Stix/Projects/sub/deep/note.md");
         assert_eq!(folder_for_opened_note(path, root), "Projects/sub/deep");
     }
 
     #[test]
     fn file_outside_root_returns_empty() {
-        let root = Path::new("/Users/test/Documents/Stik");
+        let root = Path::new("/Users/test/Documents/Stix");
         let path = Path::new("/tmp/random/note.md");
         assert_eq!(folder_for_opened_note(path, root), "");
     }
 
     #[test]
-    fn local_startup_builds_the_local_index_before_embeddings() {
-        let plan = StartupPlan::new(false, true);
-        assert!(plan.build_local_index);
-        assert!(!plan.start_icloud_monitor);
+    fn local_startup_builds_embeddings_when_ai_is_enabled() {
+        let plan = StartupPlan::new(true);
         assert!(plan.build_embeddings);
     }
 
     #[test]
-    fn icloud_startup_defers_indexing_to_the_icloud_monitor() {
-        let plan = StartupPlan::new(true, false);
-        assert!(!plan.build_local_index);
-        assert!(plan.start_icloud_monitor);
+    fn startup_skips_embeddings_when_ai_is_disabled() {
+        let plan = StartupPlan::new(false);
         assert!(!plan.build_embeddings);
     }
 }

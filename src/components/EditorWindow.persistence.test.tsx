@@ -26,7 +26,7 @@ vi.mock("@tauri-apps/api/event", () => ({
   listen: vi.fn(async (name, handler) => {
     if (name === "app-quit-requested") native.quitHandler = handler;
     if (name === "app-quit-cancelled") native.cancelQuitHandler = handler;
-    if (name === "files-changed" || name === "icloud-files-changed") native.fileHandlers.set(name, handler);
+    if (name === "files-changed") native.fileHandlers.set(name, handler);
     return () => {
       if (name === "app-quit-requested") native.quitHandler = undefined;
       if (name === "app-quit-cancelled") native.cancelQuitHandler = undefined;
@@ -71,7 +71,7 @@ beforeEach(() => {
   // jsdom has no layout; these are only used by CodeMirror's paint measurement.
   Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
   Range.prototype.getBoundingClientRect = () => new DOMRect();
-  files = new Map([[alpha, "# Alpha\nOriginal A"], [beta, "# Beta\nOriginal B"], [locked, "---stik-locked---\nnonce: encrypted\nciphertext"]]);
+  files = new Map([[alpha, "# Alpha\nOriginal A"], [beta, "# Beta\nOriginal B"], [locked, "---stix-locked---\nnonce: encrypted\nciphertext"]]);
   folders = ["Inbox", "Other"];
   failSaves = false;
   native.closed = false;
@@ -266,7 +266,7 @@ describe("full editor persistence", () => {
     expect(files.get(alpha)).toBe("Unsaved revision");
   });
 
-  it.each(["focus", "files-changed", "icloud-files-changed"])("refreshes the list on %s without replacing a live draft", async (event) => {
+  it.each(["focus", "files-changed"])("refreshes the list on %s without replacing a live draft", async (event) => {
     render(<EditorWindow />);
     await open("Alpha");
     edit("Unsaved local draft");
@@ -425,7 +425,7 @@ describe("full editor persistence", () => {
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Actions for locked" })); });
     fireEvent.click(screen.getByRole("menuitem", { name: "Rename" }));
     expect(screen.queryByDisplayValue("locked")).not.toBeInTheDocument();
-    expect(files.get(locked)).toBe("---stik-locked---\nnonce: encrypted\nciphertext");
+    expect(files.get(locked)).toBe("---stix-locked---\nnonce: encrypted\nciphertext");
     expect(screen.getByText(/locked notes.*Browse Notes/i)).toBeInTheDocument();
   });
 

@@ -1,5 +1,5 @@
 /**
- * CodeMirror theme for Stik — matches the existing design tokens.
+ * CodeMirror theme for Stix — matches the existing design tokens.
  * Source-mode markdown editing with syntax highlighting.
  */
 
@@ -9,7 +9,7 @@ import { tags } from "@lezer/highlight";
 import { highlightTag } from "./cm-highlight";
 
 /** Base editor theme — layout, scrolling, placeholder */
-export const stikEditorTheme = EditorView.theme({
+export const stixEditorTheme = EditorView.theme({
   "&": {
     height: "100%",
     fontSize: "var(--editor-font-size, 14px)",
@@ -25,6 +25,10 @@ export const stikEditorTheme = EditorView.theme({
     padding: "12px 16px",
     caretColor: "rgb(var(--color-coral))",
     minHeight: "100%",
+    // The window chrome sets user-select: none. Text in the note must still
+    // be selectable; image widgets keep their own user-select: none.
+    userSelect: "text",
+    WebkitUserSelect: "text",
   },
   "&.cm-focused .cm-content": {
     outline: "none",
@@ -76,7 +80,7 @@ export const stikEditorTheme = EditorView.theme({
     border: "1px solid rgb(var(--color-line))",
     borderRadius: "10px",
     backgroundColor: "rgb(var(--color-bg))",
-    boxShadow: "var(--shadow-stik)",
+    boxShadow: "var(--shadow-stix)",
     overflow: "hidden",
   },
   ".cm-tooltip-autocomplete ul": {
@@ -339,7 +343,7 @@ export const stikEditorTheme = EditorView.theme({
  * coloring all list text. List markers (-, *, 1.) are separately tagged as
  * `tags.processingInstruction` and get muted styling there.
  */
-export const stikHighlightStyle = syntaxHighlighting(
+export const stixHighlightStyle = syntaxHighlighting(
   HighlightStyle.define([
     // Headings — bold, slightly larger
     { tag: tags.heading1, fontWeight: "700", fontSize: "1.43em" },

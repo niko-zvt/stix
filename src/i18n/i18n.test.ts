@@ -44,8 +44,6 @@ describe("locale catalogues", () => {
       "common.tab",
       // acronym and brand name
       "settings.tab.ai",
-      "social.discord",
-      "social.x",
     ]);
 
     const untranslated = Object.keys(en).filter(

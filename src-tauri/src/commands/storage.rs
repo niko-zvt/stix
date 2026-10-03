@@ -1,8 +1,5 @@
-/// Storage abstraction — routes file I/O through either local filesystem
-/// or DarwinKit's coordinated iCloud methods depending on the active mode.
-///
-/// When iCloud is enabled, all file operations go through NSFileCoordinator
-/// via DarwinKit JSON-RPC. When local or custom, direct std::fs (current behavior).
+/// Storage abstraction — local filesystem notes, either the default Documents
+/// folder or a custom directory chosen in settings.
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -11,7 +8,6 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
-use super::darwinkit;
 use super::settings;
 
 // ── Storage Mode ──────────────────────────────────────────────────
@@ -19,103 +15,65 @@ use super::settings;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum StorageMode {
     Local,
-    ICloud,
     Custom(String),
 }
 
 /// Determine the active storage mode from settings.
-/// Priority: icloud.enabled > notes_directory (custom) > local default.
+/// A custom absolute notes directory wins; otherwise notes live in Documents.
 pub fn current_mode() -> StorageMode {
     match settings::load_settings_from_file() {
-        Ok(s) => {
-            if s.icloud.enabled {
-                StorageMode::ICloud
-            } else if !s.notes_directory.is_empty() {
-                let p = PathBuf::from(&s.notes_directory);
-                if p.is_absolute() {
-                    StorageMode::Custom(s.notes_directory)
-                } else {
-                    StorageMode::Local
-                }
+        Ok(s) if !s.notes_directory.is_empty() => {
+            let p = PathBuf::from(&s.notes_directory);
+            if p.is_absolute() {
+                StorageMode::Custom(s.notes_directory)
             } else {
                 StorageMode::Local
             }
         }
-        Err(_) => StorageMode::Local,
+        _ => StorageMode::Local,
     }
 }
 
 /// Resolve the configured root without creating it. Diagnostics use this to
 /// report a missing or moved vault instead of silently creating a new one.
-pub fn configured_stik_root() -> Result<PathBuf, String> {
+pub fn configured_stix_root() -> Result<PathBuf, String> {
     if let Some(root) = super::paths::dev_root()? {
         return Ok(root.join("notes"));
     }
-    match current_mode() {
-        StorageMode::ICloud => {
-            let drive = icloud_container_path()?;
-            if !drive.exists() {
-                return Err(
-                    "iCloud Drive is not available. Enable iCloud Drive in System Settings → Apple ID → iCloud."
-                        .to_string(),
-                );
-            }
-            Ok(drive.join("Stik"))
-        }
+    let preferred = match current_mode() {
         StorageMode::Custom(dir) => {
             let use_as_root = settings::load_settings_from_file()
                 .map(|s| s.use_directory_as_root)
                 .unwrap_or(false);
-            Ok(if use_as_root {
-                PathBuf::from(&dir)
+            let directory = PathBuf::from(&dir);
+            if use_as_root {
+                if directory.file_name().and_then(|name| name.to_str()) == Some("Stix") {
+                    directory
+                        .parent()
+                        .map(|parent| parent.join("Stix"))
+                        .unwrap_or(directory)
+                } else {
+                    directory
+                }
             } else {
-                PathBuf::from(&dir).join("Stik")
-            })
+                directory.join("Stix")
+            }
         }
         StorageMode::Local => {
             let docs = dirs::document_dir().ok_or("Could not find Documents directory")?;
-            Ok(docs.join("Stik"))
+            docs.join("Stix")
         }
-    }
+    };
+    let config = super::paths::config_dir().ok();
+    super::paths::adopt_legacy_notes_root(&preferred, config.as_deref())
 }
 
-/// Get the root Stik directory for the current storage mode, creating it for
+/// Get the root Stix directory for the current storage mode, creating it for
 /// normal application use when necessary.
-pub fn stik_root() -> Result<PathBuf, String> {
-    let path = configured_stik_root()?;
-    fs::create_dir_all(&path).map_err(|e| {
-        if current_mode() == StorageMode::ICloud {
-            format!("Failed to create iCloud Stik folder: {}", e)
-        } else {
-            e.to_string()
-        }
-    })?;
+pub fn stix_root() -> Result<PathBuf, String> {
+    let path = configured_stix_root()?;
+    fs::create_dir_all(&path).map_err(|e| e.to_string())?;
     Ok(path)
-}
-
-/// Stik uses the generic iCloud Drive folder (`com~apple~CloudDocs`) rather
-/// than a dedicated ubiquity container. A dedicated container would require
-/// the `com.apple.developer.icloud-container-identifiers` entitlement and a
-/// provisioning profile from Apple Developer — which blocks ad-hoc signed
-/// builds from launching (see v0.7.7). The generic folder requires no
-/// entitlements, is visible in Finder's iCloud Drive sidebar, and is
-/// available to any app whenever the user has iCloud Drive enabled.
-const ICLOUD_DRIVE_FOLDER: &str = "com~apple~CloudDocs";
-
-/// Get the root of the user's iCloud Drive. This is the folder that shows
-/// up under "iCloud Drive" in Finder — not a Stik-specific container.
-pub fn icloud_container_path() -> Result<PathBuf, String> {
-    let home = dirs::home_dir().ok_or("Cannot determine home directory")?;
-    let drive = home
-        .join("Library")
-        .join("Mobile Documents")
-        .join(ICLOUD_DRIVE_FOLDER);
-    Ok(drive)
-}
-
-/// Check whether iCloud Drive is available on this machine.
-pub fn icloud_available() -> bool {
-    icloud_container_path().map(|p| p.exists()).unwrap_or(false)
 }
 
 // ── Atomic Writes ─────────────────────────────────────────────────
@@ -190,66 +148,20 @@ pub fn take_self_write(path: &str) -> bool {
 // ── File Operations ───────────────────────────────────────────────
 
 pub fn read_file(path: &str) -> Result<String, String> {
-    match current_mode() {
-        StorageMode::ICloud => {
-            let result = darwinkit::call_with_timeout(
-                "icloud.read",
-                Some(serde_json::json!({ "path": path })),
-                30,
-            )?;
-            result
-                .get("content")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .ok_or_else(|| "iCloud read returned no content".to_string())
-        }
-        _ => fs::read_to_string(path).map_err(|e| e.to_string()),
-    }
+    fs::read_to_string(path).map_err(|e| e.to_string())
 }
 
 pub fn write_file(path: &str, content: &str) -> Result<(), String> {
     record_self_write(path);
-    match current_mode() {
-        StorageMode::ICloud => {
-            darwinkit::call_with_timeout(
-                "icloud.write",
-                Some(serde_json::json!({ "path": path, "content": content })),
-                30,
-            )?;
-            Ok(())
-        }
-        _ => atomic_write(path, content.as_bytes()),
-    }
+    atomic_write(path, content.as_bytes())
 }
 
 pub fn write_bytes(path: &str, data: &[u8]) -> Result<(), String> {
-    match current_mode() {
-        StorageMode::ICloud => {
-            use base64::Engine;
-            let b64 = base64::engine::general_purpose::STANDARD.encode(data);
-            darwinkit::call_with_timeout(
-                "icloud.write_bytes",
-                Some(serde_json::json!({ "path": path, "data": b64 })),
-                30,
-            )?;
-            Ok(())
-        }
-        _ => atomic_write(path, data),
-    }
+    atomic_write(path, data)
 }
 
 pub fn delete_file(path: &str) -> Result<(), String> {
-    match current_mode() {
-        StorageMode::ICloud => {
-            darwinkit::call_with_timeout(
-                "icloud.delete",
-                Some(serde_json::json!({ "path": path })),
-                30,
-            )?;
-            Ok(())
-        }
-        _ => fs::remove_file(path).map_err(|e| e.to_string()),
-    }
+    fs::remove_file(path).map_err(|e| e.to_string())
 }
 
 /// Rename without replacing another note, directory, or symlink. Fail closed
@@ -283,65 +195,20 @@ pub(crate) fn move_local_path(_src: &Path, _dst: &Path) -> Result<(), String> {
 }
 
 pub fn move_file(src: &str, dst: &str) -> Result<(), String> {
-    match current_mode() {
-        StorageMode::ICloud => {
-            // DarwinKit coordinates FileManager.moveItem, whose contract refuses
-            // an existing destination; unlike copy_file it never removes it first.
-            darwinkit::call_with_timeout(
-                "icloud.move",
-                Some(serde_json::json!({ "source": src, "destination": dst })),
-                30,
-            )?;
-            Ok(())
-        }
-        _ => move_local_path(Path::new(src), Path::new(dst)),
-    }
+    move_local_path(Path::new(src), Path::new(dst))
 }
 
 pub fn copy_file(src: &str, dst: &str) -> Result<(), String> {
-    match current_mode() {
-        StorageMode::ICloud => {
-            darwinkit::call_with_timeout(
-                "icloud.copy_file",
-                Some(serde_json::json!({ "source": src, "destination": dst })),
-                30,
-            )?;
-            Ok(())
-        }
-        _ => {
-            fs::copy(src, dst).map_err(|e| e.to_string())?;
-            Ok(())
-        }
-    }
+    fs::copy(src, dst).map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 pub fn ensure_dir(path: &str) -> Result<(), String> {
-    match current_mode() {
-        StorageMode::ICloud => {
-            darwinkit::call_with_timeout(
-                "icloud.ensure_dir",
-                Some(serde_json::json!({ "path": path })),
-                30,
-            )?;
-            Ok(())
-        }
-        _ => fs::create_dir_all(path).map_err(|e| e.to_string()),
-    }
+    fs::create_dir_all(path).map_err(|e| e.to_string())
 }
 
 pub fn remove_dir_all(path: &str) -> Result<(), String> {
-    // No special iCloud handling needed — coordinated delete works on directories too
-    match current_mode() {
-        StorageMode::ICloud => {
-            darwinkit::call_with_timeout(
-                "icloud.delete",
-                Some(serde_json::json!({ "path": path })),
-                30,
-            )?;
-            Ok(())
-        }
-        _ => fs::remove_dir_all(path).map_err(|e| e.to_string()),
-    }
+    fs::remove_dir_all(path).map_err(|e| e.to_string())
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -353,97 +220,31 @@ pub struct DirEntry {
 }
 
 pub fn list_dir(path: &str) -> Result<Vec<DirEntry>, String> {
-    match current_mode() {
-        StorageMode::ICloud => {
-            let result = darwinkit::call_with_timeout(
-                "icloud.list_dir",
-                Some(serde_json::json!({ "path": path })),
-                30,
-            )?;
-            let entries = result
-                .get("entries")
-                .and_then(|v| v.as_array())
-                .ok_or("iCloud list_dir returned no entries")?;
-
-            Ok(entries
-                .iter()
-                .filter_map(|e| {
-                    Some(DirEntry {
-                        name: e.get("name")?.as_str()?.to_string(),
-                        is_directory: e.get("is_directory")?.as_bool()?,
-                        size: e.get("size")?.as_u64().unwrap_or(0),
-                        modified: e
-                            .get("modified")
-                            .and_then(|v| v.as_str())
-                            .map(|s| s.to_string()),
-                    })
-                })
-                .collect())
-        }
-        _ => {
-            let entries = fs::read_dir(path).map_err(|e| e.to_string())?;
-            Ok(entries
-                .filter_map(|entry| {
-                    let entry = entry.ok()?;
-                    let metadata = entry.metadata().ok()?;
-                    let modified = metadata.modified().ok().map(|t| {
-                        let dt: chrono::DateTime<chrono::Local> = t.into();
-                        dt.to_rfc3339()
-                    });
-                    Some(DirEntry {
-                        name: entry.file_name().to_string_lossy().to_string(),
-                        is_directory: metadata.is_dir(),
-                        size: metadata.len(),
-                        modified,
-                    })
-                })
-                .collect())
-        }
-    }
+    let entries = fs::read_dir(path).map_err(|e| e.to_string())?;
+    Ok(entries
+        .filter_map(|entry| {
+            let entry = entry.ok()?;
+            let metadata = entry.metadata().ok()?;
+            let modified = metadata.modified().ok().map(|t| {
+                let dt: chrono::DateTime<chrono::Local> = t.into();
+                dt.to_rfc3339()
+            });
+            Some(DirEntry {
+                name: entry.file_name().to_string_lossy().to_string(),
+                is_directory: metadata.is_dir(),
+                size: metadata.len(),
+                modified,
+            })
+        })
+        .collect())
 }
 
-/// Check if a path exists. For iCloud mode, attempts a list_dir on the parent
-/// to verify the file. For local, uses std::path::Path::exists().
 pub fn path_exists(path: &str) -> bool {
-    match current_mode() {
-        StorageMode::ICloud => {
-            // For iCloud, try reading — if it fails, the file doesn't exist
-            // This is simpler than listing the parent directory
-            let p = PathBuf::from(path);
-            if p.is_dir() {
-                list_dir(path).is_ok()
-            } else {
-                read_file(path).is_ok()
-            }
-        }
-        _ => PathBuf::from(path).exists(),
-    }
+    PathBuf::from(path).exists()
 }
 
-/// Check if path is a directory. For local mode only (iCloud uses list_dir).
 pub fn is_dir(path: &str) -> bool {
-    match current_mode() {
-        StorageMode::ICloud => {
-            // Try listing — if it succeeds, it's a directory
-            list_dir(path).is_ok()
-        }
-        _ => PathBuf::from(path).is_dir(),
-    }
-}
-
-/// Start iCloud file monitoring via DarwinKit
-pub fn start_monitoring() -> Result<(), String> {
-    if current_mode() != StorageMode::ICloud {
-        return Ok(());
-    }
-    darwinkit::call("icloud.start_monitoring", None)?;
-    Ok(())
-}
-
-/// Stop iCloud file monitoring
-pub fn stop_monitoring() -> Result<(), String> {
-    darwinkit::call("icloud.stop_monitoring", None)?;
-    Ok(())
+    PathBuf::from(path).is_dir()
 }
 
 #[cfg(test)]
@@ -456,7 +257,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .expect("clock should be monotonic")
             .as_nanos();
-        let dir = std::env::temp_dir().join(format!("stik-storage-{label}-{nanos}"));
+        let dir = std::env::temp_dir().join(format!("stix-storage-{label}-{nanos}"));
         fs::create_dir_all(&dir).expect("temp dir should be creatable");
         dir
     }
@@ -570,7 +371,7 @@ mod tests {
 
     #[test]
     fn self_write_is_seen_once_then_forgotten() {
-        let path = "/tmp/stik-self-write-once.md";
+        let path = "/tmp/stix-self-write-once.md";
         record_self_write(path);
 
         assert!(take_self_write(path), "our own write should be suppressed");
@@ -582,6 +383,6 @@ mod tests {
 
     #[test]
     fn a_path_we_never_wrote_is_never_suppressed() {
-        assert!(!take_self_write("/tmp/stik-never-written.md"));
+        assert!(!take_self_write("/tmp/stix-never-written.md"));
     }
 }

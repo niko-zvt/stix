@@ -4,12 +4,11 @@ use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Emitter, Manager, State};
 
-use super::analytics;
 use super::embeddings::{self, EmbeddingIndex};
-use super::folders::get_stik_folder;
+use super::folders::get_stix_folder;
 use super::git_share;
 use super::index::NoteIndex;
-use crate::state::{AppState, LastSavedNote};
+use crate::state::AppState;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NoteSaved {
@@ -149,10 +148,12 @@ fn is_break_placeholder_line(line: &str) -> bool {
 }
 
 pub fn is_effectively_empty_markdown(content: &str) -> bool {
-    content.lines().all(|line| {
-        let trimmed = line.trim();
-        trimmed.is_empty() || is_break_placeholder_line(trimmed)
-    })
+    super::note_geometry::strip_note_geometry(content)
+        .lines()
+        .all(|line| {
+            let trimmed = line.trim();
+            trimmed.is_empty() || is_break_placeholder_line(trimmed)
+        })
 }
 
 /// Core save logic, callable from other Rust modules without Tauri State
@@ -161,8 +162,9 @@ pub fn save_note_inner(folder: String, content: String) -> Result<NoteSaved, Str
         super::folders::validate_folder_path(&folder)?;
     }
 
-    // Don't save empty notes
-    if is_effectively_empty_markdown(&content) {
+    let body = super::note_geometry::strip_note_geometry(&content);
+    // Don't save empty notes. The window header alone is not note text.
+    if is_effectively_empty_markdown(&body) {
         return Ok(NoteSaved {
             path: String::new(),
             folder,
@@ -170,18 +172,23 @@ pub fn save_note_inner(folder: String, content: String) -> Result<NoteSaved, Str
         });
     }
 
-    let stik_folder = get_stik_folder()?;
+    let stix_folder = get_stix_folder()?;
     let folder_path =
-        super::path_security::authorize_new_path(&stik_folder, &stik_folder.join(&folder))?;
+        super::path_security::authorize_new_path(&stix_folder, &stix_folder.join(&folder))?;
 
     // Ensure folder exists
     super::storage::ensure_dir(&folder_path.to_string_lossy())?;
 
     // Generate filename and write
-    let filename = generate_filename(&content, &folder_path);
+    let filename = generate_filename(&body, &folder_path);
     let file_path = folder_path.join(&filename);
+    let stored = if super::note_geometry::parse_note_geometry(&content).is_some() {
+        content
+    } else {
+        body
+    };
 
-    super::storage::write_file(&file_path.to_string_lossy(), &content)?;
+    super::storage::write_file(&file_path.to_string_lossy(), &stored)?;
 
     Ok(NoteSaved {
         path: file_path.to_string_lossy().to_string(),
@@ -190,18 +197,12 @@ pub fn save_note_inner(folder: String, content: String) -> Result<NoteSaved, Str
     })
 }
 
-/// Post-save side effects: analytics, indexing, embeddings, last_saved_note tracking.
+/// Post-save side effects: indexing, embeddings, last_saved_note tracking.
 /// Callable from both the Tauri command and the clipboard capture shortcut handler.
 pub fn post_save_processing(app: &AppHandle, result: &NoteSaved, content: &str) {
     if result.path.is_empty() {
         return;
     }
-
-    let word_count = content.split_whitespace().count();
-    analytics::track(
-        "note_created",
-        serde_json::json!({ "word_count": word_count }),
-    );
 
     let index = app.state::<NoteIndex>();
     index.add(&result.path, &result.folder);
@@ -212,21 +213,15 @@ pub fn post_save_processing(app: &AppHandle, result: &NoteSaved, content: &str) 
         .unwrap_or(false)
     {
         let emb_index = app.state::<EmbeddingIndex>();
-        if let Some(emb) = embeddings::embed_content(content) {
+        let body = super::note_geometry::strip_note_geometry(content);
+        if let Some(emb) = embeddings::embed_content(&body) {
             emb_index.add_entry(&result.path, emb);
             let _ = emb_index.save();
         }
     }
 
-    let state = app.state::<AppState>();
-    let mut last = state
-        .last_saved_note
-        .lock()
-        .unwrap_or_else(|e: std::sync::PoisonError<_>| e.into_inner());
-    *last = Some(LastSavedNote {
-        path: result.path.clone(),
-        folder: result.folder.clone(),
-    });
+    app.state::<AppState>()
+        .remember_note(&result.path, &result.folder);
 }
 
 #[tauri::command]
@@ -234,11 +229,16 @@ pub fn save_note(
     app: AppHandle,
     folder: String,
     content: String,
+    geometry: Option<super::note_geometry::NoteGeometry>,
     _index: State<'_, NoteIndex>,
     _emb_index: State<'_, EmbeddingIndex>,
 ) -> Result<NoteSaved, String> {
-    let result = save_note_inner(folder, content.clone())?;
-    post_save_processing(&app, &result, &content);
+    let stored = match geometry {
+        Some(geometry) => super::note_geometry::embed_note_geometry(&content, &geometry),
+        None => content,
+    };
+    let result = save_note_inner(folder, stored.clone())?;
+    post_save_processing(&app, &result, &stored);
     Ok(result)
 }
 
@@ -294,9 +294,9 @@ pub async fn search_notes(
 }
 
 pub fn get_note_content_inner(path: &str) -> Result<String, String> {
-    let stik_folder = get_stik_folder()?;
+    let stix_folder = get_stix_folder()?;
     let note_path = PathBuf::from(path);
-    let authorized = super::path_security::authorize_existing_path(&stik_folder, &note_path)
+    let authorized = super::path_security::authorize_existing_path(&stix_folder, &note_path)
         .map_err(|error| format!("Note path is not authorized: {error}"))?;
 
     super::storage::read_file(&authorized.to_string_lossy())
@@ -304,18 +304,71 @@ pub fn get_note_content_inner(path: &str) -> Result<String, String> {
 
 #[tauri::command]
 pub fn get_note_content(path: String) -> Result<String, String> {
-    get_note_content_inner(&path)
+    let content = get_note_content_inner(&path)?;
+    if super::note_lock::is_locked_content(&content) {
+        return Ok(content);
+    }
+    Ok(super::note_geometry::strip_note_geometry(&content))
+}
+
+/// Rewrites only the size and place lines of a note that already has text.
+#[tauri::command]
+pub fn save_note_window_geometry(
+    path: String,
+    geometry: super::note_geometry::NoteGeometry,
+) -> Result<(), String> {
+    let stix_folder = get_stix_folder()?;
+    let note_path = PathBuf::from(&path);
+    let in_stix_folder = note_path.starts_with(&stix_folder);
+    let effective_path = if in_stix_folder {
+        super::path_security::authorize_existing_path(&stix_folder, &note_path)?
+    } else {
+        let is_markdown = note_path
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .map(|ext| ext.eq_ignore_ascii_case("md") || ext.eq_ignore_ascii_case("markdown"))
+            .unwrap_or(false);
+        if !is_markdown {
+            return Err(
+                "Invalid path: only markdown files can be edited outside the Stix folder"
+                    .to_string(),
+            );
+        }
+        note_path
+    };
+    if !super::storage::path_exists(&effective_path.to_string_lossy()) {
+        return Ok(());
+    }
+    let existing = super::storage::read_file(&effective_path.to_string_lossy())?;
+    if super::note_lock::is_locked_content(&existing) || is_effectively_empty_markdown(&existing) {
+        return Ok(());
+    }
+    let next = super::note_geometry::embed_note_geometry(&existing, &geometry);
+    if next != existing {
+        super::storage::write_file(&effective_path.to_string_lossy(), &next)?;
+    }
+    Ok(())
 }
 
 #[tauri::command]
 pub fn update_note(
+    app: AppHandle,
     path: String,
     content: String,
+    geometry: Option<super::note_geometry::NoteGeometry>,
     index: State<'_, NoteIndex>,
     emb_index: State<'_, EmbeddingIndex>,
     preserve_empty: Option<bool>,
 ) -> Result<NoteSaved, String> {
-    update_note_inner(path, content, &index, &emb_index, preserve_empty)
+    let content = match geometry {
+        Some(geometry) => super::note_geometry::embed_note_geometry(&content, &geometry),
+        None => content,
+    };
+    let saved = update_note_inner(path.clone(), content, &index, &emb_index, preserve_empty)?;
+    if saved.path.is_empty() {
+        app.state::<crate::state::AppState>().forget_note(&path);
+    }
+    Ok(saved)
 }
 
 /// Shared file mutation logic, also exercised by isolated backend QA.
@@ -326,22 +379,22 @@ pub fn update_note_inner(
     emb_index: &EmbeddingIndex,
     preserve_empty: Option<bool>,
 ) -> Result<NoteSaved, String> {
-    let stik_folder = get_stik_folder()?;
+    let stix_folder = get_stix_folder()?;
     let note_path = PathBuf::from(&path);
-    let requested_managed_path = note_path.starts_with(&stik_folder);
+    let requested_managed_path = note_path.starts_with(&stix_folder);
     let authorized_managed_path = if requested_managed_path {
         Some(super::path_security::authorize_existing_path(
-            &stik_folder,
+            &stix_folder,
             &note_path,
         )?)
     } else {
         None
     };
-    let in_stik_folder = authorized_managed_path.is_some();
+    let in_stix_folder = authorized_managed_path.is_some();
     let effective_path = authorized_managed_path.as_deref().unwrap_or(&note_path);
 
     // For viewing notes opened from Finder, allow saving external markdown files too.
-    if !in_stik_folder {
+    if !in_stix_folder {
         let is_markdown = note_path
             .extension()
             .and_then(|ext| ext.to_str())
@@ -349,7 +402,8 @@ pub fn update_note_inner(
             .unwrap_or(false);
         if !is_markdown {
             return Err(
-                "Invalid path: only markdown files can be edited outside Stik folder".to_string(),
+                "Invalid path: only markdown files can be edited outside the Stix folder"
+                    .to_string(),
             );
         }
     }
@@ -364,10 +418,10 @@ pub fn update_note_inner(
         return Err("Locked notes require an authenticated encrypted save".into());
     }
 
-    // In Stik-managed notes, empty content deletes the note.
-    if in_stik_folder && !preserve_empty.unwrap_or(false) && is_effectively_empty_markdown(&content)
-    {
-        super::trash::trash_managed_note(&stik_folder, effective_path)?;
+    let body = super::note_geometry::strip_note_geometry(&content);
+    // In Stix-managed notes, empty content deletes the note.
+    if in_stix_folder && !preserve_empty.unwrap_or(false) && is_effectively_empty_markdown(&body) {
+        super::trash::trash_managed_note(&stix_folder, effective_path)?;
         index.remove(&path);
         emb_index.remove_entry(&path);
         let _ = emb_index.save();
@@ -378,24 +432,27 @@ pub fn update_note_inner(
         });
     }
 
-    // Folder = parent path relative to the Stik root (supports nesting).
-    let folder = super::folders::note_folder(&stik_folder, effective_path);
+    // Folder = parent path relative to the Stix root (supports nesting).
+    let folder = super::folders::note_folder(&stix_folder, effective_path);
 
     let filename = note_path
         .file_name()
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_default();
 
+    let geometry = super::note_geometry::parse_note_geometry(&content)
+        .or_else(|| super::note_geometry::parse_note_geometry(&existing_content));
+    let stored = match geometry {
+        Some(geometry) if !is_effectively_empty_markdown(&body) => {
+            super::note_geometry::embed_note_geometry(&body, &geometry)
+        }
+        _ => body.clone(),
+    };
+
     // Write updated content
-    super::storage::write_file(&effective_path.to_string_lossy(), &content)?;
+    super::storage::write_file(&effective_path.to_string_lossy(), &stored)?;
 
-    let word_count = content.split_whitespace().count();
-    analytics::track(
-        "note_updated",
-        serde_json::json!({ "word_count": word_count }),
-    );
-
-    if in_stik_folder {
+    if in_stix_folder {
         // Re-index with updated content
         index.add(&path, &folder);
         git_share::notify_note_changed(&folder);
@@ -403,7 +460,7 @@ pub fn update_note_inner(
             .map(|s| s.ai_features_enabled)
             .unwrap_or(false)
         {
-            if let Some(emb) = embeddings::embed_content(&content) {
+            if let Some(emb) = embeddings::embed_content(&body) {
                 emb_index.add_entry(&path, emb);
                 let _ = emb_index.save();
             }
@@ -424,21 +481,23 @@ pub fn delete_note(
     index: State<'_, NoteIndex>,
     emb_index: State<'_, EmbeddingIndex>,
 ) -> Result<super::trash::TrashedNote, String> {
-    let stik_folder = get_stik_folder()?;
+    let stix_folder = get_stix_folder()?;
     let note_path =
-        super::path_security::authorize_existing_path(&stik_folder, &PathBuf::from(&path))?;
+        super::path_security::authorize_existing_path(&stix_folder, &PathBuf::from(&path))?;
     let authorized_path = note_path.to_string_lossy().to_string();
 
-    let folder = super::folders::note_folder(&stik_folder, &note_path);
+    let folder = super::folders::note_folder(&stix_folder, &note_path);
 
-    let trashed = super::trash::trash_managed_note(&stik_folder, &note_path)?;
-    analytics::track("note_deleted", serde_json::json!({}));
+    let trashed = super::trash::trash_managed_note(&stix_folder, &note_path)?;
     index.remove(&authorized_path);
     emb_index.remove_entry(&authorized_path);
     let _ = emb_index.save();
     git_share::notify_note_changed(&folder);
 
     // Notify any viewing windows so they can close themselves
+    app.state::<crate::state::AppState>()
+        .forget_note(&authorized_path);
+    app.state::<crate::state::AppState>().forget_note(&path);
     let _ = app.emit("note-deleted", &authorized_path);
 
     Ok(trashed)
@@ -461,17 +520,17 @@ pub fn move_note_inner(
     index: &NoteIndex,
     emb_index: &EmbeddingIndex,
 ) -> Result<NoteInfo, String> {
-    let stik_folder = get_stik_folder()?;
+    let stix_folder = get_stix_folder()?;
     let source_path =
-        super::path_security::authorize_existing_path(&stik_folder, &PathBuf::from(&path))?;
-    let source_folder = super::folders::note_folder(&stik_folder, &source_path);
+        super::path_security::authorize_existing_path(&stix_folder, &PathBuf::from(&path))?;
+    let source_folder = super::folders::note_folder(&stix_folder, &source_path);
     let authorized_source = source_path.to_string_lossy().to_string();
 
     super::folders::validate_folder_path(&target_folder)?;
 
     // Ensure target folder exists
     let target_folder_path =
-        super::path_security::authorize_new_path(&stik_folder, &stik_folder.join(&target_folder))?;
+        super::path_security::authorize_new_path(&stix_folder, &stix_folder.join(&target_folder))?;
     super::storage::ensure_dir(&target_folder_path.to_string_lossy())?;
 
     // Get filename from source
@@ -492,14 +551,14 @@ pub fn move_note_inner(
     }
 
     // Move the file
-    let target_path = super::path_security::authorize_new_path(&stik_folder, &target_path)?;
+    let target_path = super::path_security::authorize_new_path(&stix_folder, &target_path)?;
     super::storage::move_file(&authorized_source, &target_path.to_string_lossy())
         .map_err(|e| format!("Failed to move note: {}", e))?;
 
     // Only touch assets after the exclusive move succeeds. A concurrent note
     // arriving at the destination must leave the source note and assets intact.
     if source_folder != target_folder {
-        let source_folder_path = source_path.parent().unwrap_or(&stik_folder).to_path_buf();
+        let source_folder_path = source_path.parent().unwrap_or(&stix_folder).to_path_buf();
         move_note_assets(&content, &source_folder_path, &target_folder_path);
     }
 
@@ -641,9 +700,9 @@ fn is_supported_image_ext(ext: &str) -> bool {
     )
 }
 
-fn note_assets_directory(stik_folder: &Path, folder: &str) -> Result<PathBuf, String> {
+fn note_assets_directory(stix_folder: &Path, folder: &str) -> Result<PathBuf, String> {
     super::folders::validate_folder_path(folder)?;
-    super::path_security::authorize_new_path(stik_folder, &stik_folder.join(folder).join(".assets"))
+    super::path_security::authorize_new_path(stix_folder, &stix_folder.join(folder).join(".assets"))
 }
 
 /// Save an image (base64-encoded) into the folder's `.assets/` directory.
@@ -663,8 +722,8 @@ pub fn save_note_image(folder: String, image_data: String) -> Result<(String, St
         .decode(raw_b64)
         .map_err(|e| format!("Invalid base64: {}", e))?;
 
-    let stik_folder = get_stik_folder()?;
-    let assets_dir = note_assets_directory(&stik_folder, &folder)?;
+    let stix_folder = get_stix_folder()?;
+    let assets_dir = note_assets_directory(&stix_folder, &folder)?;
     let folder_path = assets_dir
         .parent()
         .ok_or_else(|| "Assets directory has no parent".to_string())?;
@@ -706,8 +765,8 @@ pub fn save_note_image_from_path(
         return Err("Dropped file is not a supported image".to_string());
     }
 
-    let stik_folder = get_stik_folder()?;
-    let assets_dir = note_assets_directory(&stik_folder, &folder)?;
+    let stix_folder = get_stix_folder()?;
+    let assets_dir = note_assets_directory(&stix_folder, &folder)?;
     let folder_path = assets_dir
         .parent()
         .ok_or_else(|| "Assets directory has no parent".to_string())?;
@@ -739,7 +798,7 @@ mod tests {
             .duration_since(std::time::UNIX_EPOCH)
             .expect("clock should be monotonic")
             .as_nanos();
-        let dir = std::env::temp_dir().join(format!("stik-fname-{label}-{nanos}"));
+        let dir = std::env::temp_dir().join(format!("stix-fname-{label}-{nanos}"));
         std::fs::create_dir_all(&dir).expect("temp dir should be creatable");
         dir
     }
@@ -827,6 +886,13 @@ mod tests {
     #[test]
     fn real_content_with_placeholders_is_not_empty() {
         assert!(!is_effectively_empty_markdown("hello\n\n<br>\n"));
+    }
+
+    #[test]
+    fn window_geometry_alone_does_not_make_a_note() {
+        let header = "<!-- stix:size 400x280 -->\n<!-- stix:place 48,24 screen 0,0 2560x1440 -->\n";
+        assert!(is_effectively_empty_markdown(header));
+        assert!(!is_effectively_empty_markdown(&format!("{header}Hello")));
     }
 
     #[test]

@@ -294,7 +294,7 @@ pub fn trash_managed_note(root: &Path, note: &Path) -> Result<TrashedNote, Strin
 
 #[tauri::command]
 pub fn list_trashed_notes() -> Result<Vec<TrashedNote>, String> {
-    let root = super::folders::get_stik_folder()?;
+    let root = super::folders::get_stix_folder()?;
     list_trashed_notes_with(&AppTrashStorage, &root)
 }
 
@@ -304,7 +304,7 @@ pub fn restore_trashed_note(
     index: tauri::State<'_, super::index::NoteIndex>,
     embeddings: tauri::State<'_, super::embeddings::EmbeddingIndex>,
 ) -> Result<String, String> {
-    let root = super::folders::get_stik_folder()?;
+    let root = super::folders::get_stix_folder()?;
     let restored = restore_trashed_note_with(&AppTrashStorage, &root, &id)?;
     let restored_string = restored.to_string_lossy().to_string();
     let folder = super::folders::note_folder(&root, &restored);
@@ -320,7 +320,7 @@ pub fn restore_trashed_note(
 
 #[tauri::command]
 pub fn purge_trashed_note(id: String) -> Result<(), String> {
-    let root = super::folders::get_stik_folder()?;
+    let root = super::folders::get_stix_folder()?;
     purge_trashed_note_with(&AppTrashStorage, &root, &id)
 }
 
@@ -337,7 +337,7 @@ mod tests {
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let root = std::env::temp_dir().join(format!("stik-trash-{label}-{nonce}"));
+        let root = std::env::temp_dir().join(format!("stix-trash-{label}-{nonce}"));
         fs::create_dir_all(&root).unwrap();
         root
     }

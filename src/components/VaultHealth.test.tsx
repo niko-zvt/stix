@@ -15,7 +15,7 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({ save: mocks.save }));
 const healthyReport = {
   status: "healthy",
   storageMode: "local",
-  rootPath: "/Users/test/Documents/Stik",
+  rootPath: "/Users/test/Documents/Stix",
   rootExists: true,
   rootIsDirectory: true,
   rootWritable: true,
@@ -39,13 +39,13 @@ describe("VaultHealth", () => {
 
     expect(await screen.findByRole("heading", { name: "Vault health" })).toBeInTheDocument();
     expect(await screen.findByRole("status")).toHaveTextContent("Healthy");
-    expect(screen.getByText("/Users/test/Documents/Stik")).toBeInTheDocument();
+    expect(screen.getByText("/Users/test/Documents/Stix")).toBeInTheDocument();
     expect(screen.getByText("4 on disk / 4 indexed")).toBeInTheDocument();
   });
 
   it("rebuilds the index and refreshes the report", async () => {
     render(<VaultHealth />);
-    await screen.findByText("/Users/test/Documents/Stik");
+    await screen.findByText("/Users/test/Documents/Stix");
 
     fireEvent.click(screen.getByRole("button", { name: "Rebuild index" }));
 
@@ -57,15 +57,15 @@ describe("VaultHealth", () => {
   });
 
   it("exports diagnostics to the explicitly selected file", async () => {
-    mocks.save.mockResolvedValue("/tmp/stik-diagnostics.json");
+    mocks.save.mockResolvedValue("/tmp/stix-diagnostics.json");
     render(<VaultHealth />);
-    await screen.findByText("/Users/test/Documents/Stik");
+    await screen.findByText("/Users/test/Documents/Stix");
 
     fireEvent.click(screen.getByRole("button", { name: "Export diagnostics" }));
 
     await waitFor(() => {
       expect(mocks.invoke).toHaveBeenCalledWith("export_vault_diagnostics", {
-        path: "/tmp/stik-diagnostics.json",
+        path: "/tmp/stix-diagnostics.json",
       });
     });
     expect(screen.getByRole("status")).toHaveTextContent("Diagnostics exported");

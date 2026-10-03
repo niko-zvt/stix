@@ -20,7 +20,7 @@ export interface GitSharingSettings {
   shared_folder: string;
   remote_url: string;
   branch: string;
-  repository_layout: "folder_root" | "stik_root";
+  repository_layout: "folder_root" | "stix_root";
   sync_interval_seconds: number;
 }
 
@@ -53,31 +53,13 @@ export interface CustomThemeDefinition {
   colors: ThemeColors;
 }
 
-export interface ICloudSettings {
-  enabled: boolean;
-  migrated: boolean;
-}
-
-export interface ICloudStatus {
-  available: boolean;
-  enabled: boolean;
-  migrated: boolean;
-  container_url: string;
-  storage_mode: string;
-}
-
-export interface MigrationResult {
-  files_copied: number;
-  errors: string[];
-}
-
 export interface NoteLockSettings {
   enabled: boolean;
   timeout_minutes: number;
   lock_on_sleep: boolean;
 }
 
-export interface StikSettings {
+export interface StixSettings {
   shortcut_mappings: ShortcutMapping[];
   default_folder: string;
   git_sharing: GitSharingSettings;
@@ -89,9 +71,6 @@ export interface StikSettings {
   folder_colors: Record<string, string>;
   folder_icons: Record<string, string>;
   system_shortcuts: Record<string, string>;
-  analytics_enabled: boolean;
-  analytics_consent_version: number;
-  analytics_notice_dismissed: boolean;
   load_remote_images: boolean;
   font_size: number;
   custom_templates: CustomTemplate[];
@@ -105,7 +84,6 @@ export interface StikSettings {
   font_family?: string | null; // null = system default
   window_opacity?: number; // 0.2–1.0, default 1.0
   custom_fonts?: CustomFontEntry[];
-  icloud: ICloudSettings;
   note_lock: NoteLockSettings;
   use_directory_as_root?: boolean;
   zen_mode_enabled?: boolean;
@@ -194,7 +172,7 @@ export interface VaultHealthIssue {
 
 export interface VaultHealthReport {
   status: "healthy" | "warning" | "error";
-  storageMode: "local" | "icloud" | "custom";
+  storageMode: "local" | "custom";
   rootPath: string | null;
   rootExists: boolean;
   rootIsDirectory: boolean;
@@ -237,7 +215,7 @@ export interface GitSyncStatus {
   linked_folder: string | null;
   remote_url: string | null;
   branch: string;
-  repository_layout: "folder_root" | "stik_root";
+  repository_layout: "folder_root" | "stix_root";
   repo_initialized: boolean;
   pending_changes: boolean;
   syncing: boolean;

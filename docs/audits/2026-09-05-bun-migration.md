@@ -30,8 +30,8 @@ The baseline passed 181 frontend tests, production build, platform consistency, 
 | `bun audit --audit-level=high` | No vulnerabilities found, 356 packages checked by the audit command |
 | Workflow/configuration checks | All YAML parsed; all Bun jobs use `.bun-version` and retain Node 20; package-manager pins and Dependabot ecosystem match |
 | Shell syntax | `bash -n` passes for the three changed shell scripts |
-| Dev-server smoke test | `bun run dev --host 127.0.0.1` served the Stik page on port 1420; server stopped afterward |
-| Native build | `./scripts/build-dev.sh build` rebuilt DarwinKit and produced the arm64 debug `Stik.app` using the migrated Bun/Tauri hooks |
+| Dev-server smoke test | `bun run dev --host 127.0.0.1` served the Stix page on port 1420; server stopped afterward |
+| Native build | `./scripts/build-dev.sh build` rebuilt DarwinKit and produced the arm64 debug `Stix.app` using the migrated Bun/Tauri hooks |
 | Native artifact inspection | Both executables are arm64; version 0.8.0, minimum macOS 14.0, deep/strict ad-hoc signature verification passes |
 | Rust gates | Formatting and strict all-target/all-feature Clippy pass; **119 tests pass** with the arm64 target and locked/offline dependencies |
 | Swift gate | `swift test --package-path src-tauri/darwinkit`: **43 tests pass** |
@@ -57,6 +57,6 @@ The median ratio is **8.68×** for this warm-cache clean-install workload. It is
 - This is a local, ad-hoc-signed debug artifact, not notarized or published. Native GUI workflows were not exercised. Remote GitHub jobs were not triggered; the existing Swift job's missing submodule checkout remains the pre-existing concern documented in the cleanup audit.
 - The existing large lazy-chunk and `.app` bundle-identifier warnings remain. No app features or user data were changed.
 
-Local artifact: `src-tauri/target/aarch64-apple-darwin/debug/bundle/macos/Stik.app` in the cleanup worktree.
+Local artifact: `src-tauri/target/aarch64-apple-darwin/debug/bundle/macos/Stix.app` in the cleanup worktree.
 
 References: [Bun lockfile migration](https://bun.sh/docs/pm/lockfile), [frozen installation](https://bun.sh/docs/pm/cli/install), [Bun audit](https://bun.sh/docs/pm/cli/audit), [setup-bun version files](https://github.com/oven-sh/setup-bun), and [Dependabot's Bun support](https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories).

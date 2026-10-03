@@ -10,9 +10,9 @@
   --color-ink: 26 26 26;
   --color-stone: 122 122 122;
   --color-line: 240 238 235;
-  --color-coral: 232 112 95;
-  --color-coral-light: 255 241 238;
-  --color-coral-dark: 214 96 79;
+  --color-coral: 124 58 237;
+  --color-coral-light: 237 233 254;
+  --color-coral-dark: 109 40 217;
 
   /* Editor-specific (hex — not used by Tailwind opacity) */
   --editor-placeholder: #bbb;
@@ -21,32 +21,32 @@
   --editor-code-block-bg: #1a1a1a;
   --editor-code-block-text: #f0f0f0;
   --editor-checked-task: #999;
-  --editor-link: #e8705f;
-  --editor-marker: #e8705f;
-  --editor-blockquote-border: #e8705f;
+  --editor-link: #7C3AED;
+  --editor-marker: #7C3AED;
+  --editor-blockquote-border: #7C3AED;
   --editor-blockquote-text: #7a7a7a;
-  --editor-checkbox-border: #e8705f;
-  --editor-checkbox-checked: #e8705f;
+  --editor-checkbox-border: #7C3AED;
+  --editor-checkbox-checked: #7C3AED;
 
   /* Editor extras */
   --editor-highlight-bg: rgba(253, 224, 71, 0.35);
   --editor-font-family: inherit;
 
   /* Vim */
-  --vim-visual-selection: rgba(232, 112, 95, 0.12);
+  --vim-visual-selection: rgba(124, 58, 237, 0.12);
 
   /* Overlay */
   --overlay-bg: rgba(0, 0, 0, 0.6);
 
   /* Shadows */
-  --shadow-stik: 0 20px 60px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.04);
-  --shadow-coral-sm: 0 4px 16px rgba(232, 112, 95, 0.25);
-  --shadow-coral-lg: 0 8px 24px rgba(232, 112, 95, 0.35);
+  --shadow-stix: 0 20px 60px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  --shadow-coral-sm: 0 4px 16px rgba(124, 58, 237, 0.25);
+  --shadow-coral-lg: 0 8px 24px rgba(124, 58, 237, 0.35);
 
   /* Sticked note */
-  --sticked-shadow: 0 0 0 1px rgba(232, 112, 95, 0.3), 0 4px 12px rgba(0, 0, 0, 0.15), 0 0 20px rgba(232, 112, 95, 0.1);
-  --sticked-header-gradient: linear-gradient(to right, rgba(232, 112, 95, 0.08), transparent);
-  --sticked-resize-gradient: linear-gradient(135deg, transparent 50%, rgba(232, 112, 95, 0.3) 50%);
+  --sticked-shadow: 0 0 0 1px rgba(124, 58, 237, 0.3), 0 4px 12px rgba(0, 0, 0, 0.15), 0 0 20px rgba(124, 58, 237, 0.1);
+  --sticked-header-gradient: linear-gradient(to right, rgba(124, 58, 237, 0.08), transparent);
+  --sticked-resize-gradient: linear-gradient(135deg, transparent 50%, rgba(124, 58, 237, 0.3) 50%);
 }
 
 [data-theme="dark"] {
@@ -55,9 +55,9 @@
   --color-ink: 245 240 235;
   --color-stone: 168 162 158;
   --color-line: 68 64 60;
-  --color-coral: 232 112 95;
-  --color-coral-light: 61 37 32;
-  --color-coral-dark: 214 96 79;
+  --color-coral: 124 58 237;
+  --color-coral-light: 46 16 84;
+  --color-coral-dark: 109 40 217;
 
   --editor-placeholder: #666;
   --editor-strikethrough: #777;
@@ -65,26 +65,26 @@
   --editor-code-block-bg: #0f0e0d;
   --editor-code-block-text: #e8e4df;
   --editor-checked-task: #666;
-  --editor-link: #e8705f;
-  --editor-marker: #e8705f;
-  --editor-blockquote-border: #e8705f;
+  --editor-link: #7C3AED;
+  --editor-marker: #7C3AED;
+  --editor-blockquote-border: #7C3AED;
   --editor-blockquote-text: #a8a29e;
-  --editor-checkbox-border: #e8705f;
-  --editor-checkbox-checked: #e8705f;
+  --editor-checkbox-border: #7C3AED;
+  --editor-checkbox-checked: #7C3AED;
 
   --editor-highlight-bg: rgba(253, 224, 71, 0.40);
 
-  --vim-visual-selection: rgba(232, 112, 95, 0.20);
+  --vim-visual-selection: rgba(124, 58, 237, 0.20);
 
   --overlay-bg: rgba(0, 0, 0, 0.7);
 
-  --shadow-stik: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
-  --shadow-coral-sm: 0 4px 16px rgba(232, 112, 95, 0.20);
-  --shadow-coral-lg: 0 8px 24px rgba(232, 112, 95, 0.30);
+  --shadow-stix: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --shadow-coral-sm: 0 4px 16px rgba(124, 58, 237, 0.20);
+  --shadow-coral-lg: 0 8px 24px rgba(124, 58, 237, 0.30);
 
-  --sticked-shadow: 0 0 0 1px rgba(232, 112, 95, 0.25), 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(232, 112, 95, 0.08);
-  --sticked-header-gradient: linear-gradient(to right, rgba(232, 112, 95, 0.12), transparent);
-  --sticked-resize-gradient: linear-gradient(135deg, transparent 50%, rgba(232, 112, 95, 0.25) 50%);
+  --sticked-shadow: 0 0 0 1px rgba(124, 58, 237, 0.25), 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(124, 58, 237, 0.08);
+  --sticked-header-gradient: linear-gradient(to right, rgba(124, 58, 237, 0.12), transparent);
+  --sticked-resize-gradient: linear-gradient(135deg, transparent 50%, rgba(124, 58, 237, 0.25) 50%);
 }
 
 /* Transparent window background */
@@ -96,7 +96,63 @@ body,
   margin: 0;
   padding: 0;
   overflow: hidden;
+}
+
+/* Chrome stays unselectable. Note text must not inherit user-select: none:
+   WebKit ignores a selectable descendant when an ancestor disables selection,
+   so drag-select and Cmd+C never see the text. */
+button,
+.drag-handle,
+.formatting-toolbar,
+[role="menu"] {
+  -webkit-user-select: none;
   user-select: none;
+}
+
+.cm-content,
+.cm-content .cm-line {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+}
+
+/* CodeMirror paints its highlight in a zero-size layer (contain: size,
+   z-index: -1) and makes the native highlight transparent. WebKit then
+   shows nothing. Keep both highlights visible. */
+.cm-scroller > .cm-selectionLayer {
+  z-index: 2 !important;
+  contain: none !important;
+  overflow: visible !important;
+  pointer-events: none;
+}
+
+.cm-selectionLayer .cm-selectionBackground,
+.cm-editor .cm-line::selection,
+.cm-editor .cm-line *::selection {
+  background-color: rgba(var(--color-coral), 0.45) !important;
+}
+
+.cm-math {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  vertical-align: baseline;
+}
+
+.cm-math .katex {
+  font-size: 1em;
+  line-height: inherit;
+}
+
+.cm-math .katex-display {
+  display: inline;
+  margin: 0;
+  text-align: inherit;
+}
+
+.cm-image-widget,
+.cm-image-widget img {
+  -webkit-user-select: none !important;
+  user-select: none !important;
 }
 
 /* Hide scrollbar but keep scroll functionality */
@@ -118,7 +174,7 @@ body,
 }
 
 /* CodeMirror Editor Styles */
-.stik-editor {
+.stix-editor {
   font-size: var(--editor-font-size, 14px);
   font-family: var(--editor-font-family, inherit);
   line-height: 1.5;
@@ -130,9 +186,16 @@ body,
   outline-offset: -2px;
 }
 
-.stik-editor:focus-visible {
+.stix-editor:focus-visible {
   outline: 2px solid rgb(var(--color-coral));
   outline-offset: -2px;
+}
+
+/* The note card is the whole window. A focus ring here shifts the buttons
+   and flashes a line around the text. Settings and the full editor keep theirs. */
+.stix-note .stix-editor:focus-visible,
+.stix-note :where(button, a[href], input, select, textarea, [tabindex]):focus-visible {
+  outline: none;
 }
 
 .has-formatting-toolbar .cm-editor {
@@ -272,7 +335,7 @@ body,
 }
 
 /* Vim mode — @replit/codemirror-vim handles cursor styles.
-   Override visual selection color to match Stik theme. */
+   Override visual selection color to match Stix theme. */
 .cm-vim-panel input {
   font-family: Monaco, Consolas, monospace;
   font-size: 12px;
@@ -365,7 +428,7 @@ body,
 }
 
 .wiki-link:hover {
-  background-color: rgba(232, 112, 95, 0.1);
+  background-color: rgba(var(--color-coral), 0.1);
 }
 
 
@@ -562,6 +625,12 @@ body,
 .fmt-btn.fmt-disabled:hover {
   background: transparent;
   color: rgb(var(--color-stone));
+}
+
+.fmt-latex {
+  font-size: 15px;
+  line-height: 1;
+  font-family: "Times New Roman", serif;
 }
 
 .fmt-sep {

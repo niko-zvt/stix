@@ -22,9 +22,9 @@ const light: BuiltinTheme = {
     ink: "26 26 26",
     stone: "122 122 122",
     line: "240 238 235",
-    accent: "232 112 95",
-    accent_light: "255 241 238",
-    accent_dark: "214 96 79",
+    accent: "124 58 237",
+    accent_light: "237 233 254",
+    accent_dark: "109 40 217",
   },
 };
 
@@ -38,9 +38,9 @@ const dark: BuiltinTheme = {
     ink: "245 240 235",
     stone: "168 162 158",
     line: "68 64 60",
-    accent: "232 112 95",
-    accent_light: "61 37 32",
-    accent_dark: "214 96 79",
+    accent: "124 58 237",
+    accent_light: "46 16 84",
+    accent_dark: "109 40 217",
   },
 };
 
@@ -195,7 +195,7 @@ function computeEditorTokens(colors: ThemeColors, isDark: boolean) {
     "--editor-highlight-bg": `rgba(${highlightRgb.split(" ").join(", ")}, ${highlightOpacity})`,
     "--vim-visual-selection": `rgba(${colors.accent.split(" ").join(", ")}, ${isDark ? 0.2 : 0.12})`,
     "--overlay-bg": isDark ? "rgba(0, 0, 0, 0.7)" : "rgba(0, 0, 0, 0.6)",
-    "--shadow-stik": isDark
+    "--shadow-stix": isDark
       ? `0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06)`
       : `0 20px 60px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.04)`,
     "--shadow-coral-sm": `0 4px 16px rgba(${colors.accent.split(" ").join(", ")}, ${isDark ? 0.2 : 0.25})`,

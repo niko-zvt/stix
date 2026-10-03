@@ -79,7 +79,7 @@ export default function VaultHealth() {
     setActiveAction("export");
     try {
       const path = await save({
-        defaultPath: "stik-vault-diagnostics.json",
+        defaultPath: "stix-vault-diagnostics.json",
         filters: [{ name: "JSON", extensions: ["json"] }],
       });
       if (!path) return;

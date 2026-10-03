@@ -1,5 +1,5 @@
 //! Opt-in, synthetic in-memory workloads; no user files or new dependencies.
-//! Run with `STIK_PERF_SAMPLES=31 cargo test ... benchmark_note_index -- --ignored --nocapture`.
+//! Run with `STIX_PERF_SAMPLES=31 cargo test ... benchmark_note_index -- --ignored --nocapture`.
 
 use super::{IndexedNote, NoteEntry, NoteIndex, SearchDocument};
 use std::collections::hash_map::DefaultHasher;
@@ -76,12 +76,12 @@ fn measure<T>(label: &str, expected: usize, samples: usize, mut operation: impl 
 #[test]
 #[ignore = "local performance measurement; run explicitly without other workloads"]
 fn benchmark_note_index() {
-    let samples: usize = std::env::var("STIK_PERF_SAMPLES")
+    let samples: usize = std::env::var("STIX_PERF_SAMPLES")
         .unwrap_or_else(|_| "31".into())
         .parse()
         .unwrap();
     assert!(samples >= 5);
-    let filter = std::env::var("STIK_PERF_CASE").unwrap_or_default();
+    let filter = std::env::var("STIX_PERF_CASE").unwrap_or_default();
     for (dataset, count, bytes, mixed_language) in [
         ("capture", 1_000, 512, false),
         ("large", 10_000, 4_096, true),

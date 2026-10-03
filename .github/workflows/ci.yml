@@ -168,16 +168,16 @@ jobs:
       - name: Inspect and archive the Intel app
         run: |
           set -euo pipefail
-          APP="src-tauri/target/x86_64-apple-darwin/release/bundle/macos/Stik.app"
+          APP="src-tauri/target/x86_64-apple-darwin/release/bundle/macos/Stix.app"
           node scripts/check-macos-artifact.mjs "$APP" x86_64
           # Preserve executable permissions and bundle metadata in the artifact.
-          ditto -c -k --sequesterRsrc --keepParent "$APP" "$RUNNER_TEMP/Stik-Intel-ci.zip"
+          ditto -c -k --sequesterRsrc --keepParent "$APP" "$RUNNER_TEMP/Stix-Intel-ci.zip"
 
       - name: Upload non-release Intel artifact
         uses: actions/upload-artifact@v7
         with:
-          name: stik-intel-${{ github.sha }}
-          path: ${{ runner.temp }}/Stik-Intel-ci.zip
+          name: stix-intel-${{ github.sha }}
+          path: ${{ runner.temp }}/Stix-Intel-ci.zip
           if-no-files-found: error
           retention-days: 7
 

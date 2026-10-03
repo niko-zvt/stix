@@ -10,8 +10,8 @@ pub struct CursorPosition {
 }
 
 fn get_cursor_positions_path() -> Result<PathBuf, String> {
-    let stik_config = super::paths::config_dir()?;
-    Ok(stik_config.join("cursor_positions.json"))
+    let stix_config = super::paths::config_dir()?;
+    Ok(stix_config.join("cursor_positions.json"))
 }
 
 fn load_positions() -> Result<HashMap<String, CursorPosition>, String> {

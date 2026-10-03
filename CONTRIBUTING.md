@@ -1,16 +1,16 @@
-# Contributing to Stik
+# Contributing to Stix
 
-Thanks for your interest in contributing to Stik! This guide covers everything you need to get started.
+Thanks for your interest in contributing to Stix! This guide covers everything you need to get started.
 
 ## Before You Start
 
-For unsolicited contributions, please [open an issue](https://github.com/0xMassi/stik_app/issues) first to discuss the approach and avoid duplicate work. Small typo fixes and directly assigned local work do not require a new issue. Agents must not post remotely without authorization.
+For unsolicited contributions, please [open an issue](https://github.com/niko-zvt/stix/issues) first to discuss the approach and avoid duplicate work. Small typo fixes and directly assigned local work do not require a new issue. Agents must not post remotely without authorization.
 
-Check the [Ideas Board](https://www.stik.ink/ideas) to see what the community is asking for and the [Roadmap](ROADMAP.md) for planned work.
+Check the [Roadmap](ROADMAP.md) for planned work.
 
 ## Prerequisites
 
-Stik is a **macOS-only** app. You need a Mac to develop and test.
+Stix is a **macOS-only** app. You need a Mac to develop and test.
 
 | Tool | Version | Install |
 |------|---------|---------|
@@ -26,8 +26,8 @@ Stik is a **macOS-only** app. You need a Mac to develop and test.
 
 ```bash
 # Clone with submodules (DarwinKit sidecar)
-git clone --recurse-submodules https://github.com/0xMassi/stik_app.git
-cd stik_app
+git clone --recurse-submodules https://github.com/niko-zvt/stix.git
+cd stix
 
 # Initialize submodules, install locked dependencies, build DarwinKit + frontend
 ./scripts/build-dev.sh setup
@@ -50,7 +50,7 @@ Use `bun add` and `bun remove` for dependency changes, and commit the resulting 
 ## Project Structure
 
 ```
-stik_app/
+stix/
   src/                        # Frontend (React + TypeScript)
     components/               # UI components (PostIt, Editor, etc.)
     extensions/               # CodeMirror editor extensions
@@ -71,10 +71,10 @@ stik_app/
 
 ## Architecture Overview
 
-Stik is a **Tauri 2.0** app with three layers:
+Stix is a **Tauri 2.0** app with three layers:
 
 - **Frontend**: React 19 + TypeScript + Tailwind CSS + CodeMirror 6. `App.tsx` routes each Tauri window from its `?window=<type>` URL and lazy-loads window-specific surfaces. Tauri commands and events provide IPC.
-- **Backend**: Rust. Notes stored as `.md` files in `~/Documents/Stik/<Folder>/`, settings in `~/.stik/`. Core logic extracted into `_inner` functions for cross-module calls without Tauri State.
+- **Backend**: Rust. Notes stored as `.md` files in `~/Documents/Stix/<Folder>/`, settings in `~/.stix/`. Core logic extracted into `_inner` functions for cross-module calls without Tauri State.
 - **DarwinKit**: Swift CLI sidecar for on-device NLP (embeddings, language detection, sentiment) via JSON-RPC over stdio. Communicates with the Rust backend as a managed child process.
 
 ## Development Workflow
@@ -85,12 +85,12 @@ Stik is a **Tauri 2.0** app with three layers:
 ./scripts/verify.sh
 ```
 
-This runs setup, the frontend build/tests/platform/bundle gates, Rust formatting/strict Clippy/all-feature tests, and Swift tests. Native tests use a fresh `STIK_DEV_ROOT` instead of personal settings. CI also runs network-dependent dependency audits; do not treat local verification as a substitute for those. Keep the usual gates intact.
+This runs setup, the frontend build/tests/platform/bundle gates, Rust formatting/strict Clippy/all-feature tests, and Swift tests. Native tests use a fresh `STIX_DEV_ROOT` instead of personal settings. CI also runs network-dependent dependency audits; do not treat local verification as a substitute for those. Keep the usual gates intact.
 
 Run verification and native builds serially within one worktree: both replace
 `dist/`, which Rust embeds while compiling and running doctests. Use separate
 worktrees for concurrent builds. For QA across restarts, use a persistent,
-ignored scratch directory with `STIK_DEV_ROOT`; OS temporary directories may
+ignored scratch directory with `STIX_DEV_ROOT`; OS temporary directories may
 disappear between sessions.
 
 After setup, use targeted checks while iterating:
@@ -106,11 +106,11 @@ The storage integration test creates its own process-local data, checks real fil
 
 ### Isolated development and UI QA
 
-`dev` and `qa` create a new temporary profile and print its location. To resume a session, pass an existing absolute directory: `STIK_DEV_ROOT=/absolute/session ./scripts/build-dev.sh qa`. Notes live under `notes/`, application settings/caches under `config/`, and native/Vite output under `logs/dev.log`. Stop with **Ctrl-C**; data remains for inspection. These modes use `com.stik.dev`/`Stik Dev`, separate from the regular app. `qa` needs no HTTP server; `dev` binds only to `127.0.0.1`, default port 1420. If occupied, use `STIK_DEV_PORT=1422 ./scripts/build-dev.sh dev`; never terminate an unrelated listener.
+`dev` and `qa` create a new temporary profile and print its location. To resume a session, pass an existing absolute directory: `STIX_DEV_ROOT=/absolute/session ./scripts/build-dev.sh qa`. Notes live under `notes/`, application settings/caches under `config/`, and native/Vite output under `logs/dev.log`. Stop with **Ctrl-C**; data remains for inspection. These modes use `com.stix.dev`/`Stix Dev`, separate from the regular app. `qa` needs no HTTP server; `dev` binds only to `127.0.0.1`, default port 1420. If occupied, use `STIX_DEV_PORT=1422 ./scripts/build-dev.sh dev`; never terminate an unrelated listener.
 
-The debug-only profile pins the notes root and disables normal global shortcuts, analytics, updates, AI, dictation, iCloud/Git workers, Apple Notes import, and production Keychain access. Do not copy personal data or credentials into it. This is **not a security sandbox**: explicit file pickers, external-file editing, and shell/OS actions still require care. Test real OS/account integrations separately with explicit authorization and development data. Release builds reject `STIK_DEV_ROOT` rather than silently using personal state.
+The debug-only profile pins the notes root and disables normal global shortcuts, analytics, updates, AI, dictation, iCloud/Git workers, Apple Notes import, and production Keychain access. Do not copy personal data or credentials into it. This is **not a security sandbox**: explicit file pickers, external-file editing, and shell/OS actions still require care. Test real OS/account integrations separately with explicit authorization and development data. Release builds reject `STIX_DEV_ROOT` rather than silently using personal state.
 
-For native automation, select the running `src-tauri/target/<host-triple>/debug/bundle/macos/Stik Dev.app` by its full path. A bare hot-reload executable may not be discoverable by native automation. Do not double-click that bundle later without the launcher: the launcher supplies the isolated profile. The existing `build` mode remains the ordinary unsigned local build and does not launch it.
+For native automation, select the running `src-tauri/target/<host-triple>/debug/bundle/macos/Stix Dev.app` by its full path. A bare hot-reload executable may not be discoverable by native automation. Do not double-click that bundle later without the launcher: the launcher supplies the isolated profile. The existing `build` mode remains the ordinary unsigned local build and does not launch it.
 
 If native automation cannot read the app or times out, report UI QA as unverified and perform the flow manually; a successful build, startup log, or backend test does not establish UI correctness.
 
@@ -185,7 +185,7 @@ cargo test
 
 - Use the existing theme tokens in globals.css
 - Support both light and dark themes (`[data-theme="dark"]` overrides)
-- Keep editor styles scoped under `.stik-editor`
+- Keep editor styles scoped under `.stix-editor`
 
 ### General
 
@@ -230,20 +230,14 @@ Keep the subject line under 72 characters. Use the body for details when needed.
 When filing a bug, include:
 
 - macOS version
-- Stik version (Settings or `brew info stik`)
+- Stix version (Settings or `brew info stix`)
 - Steps to reproduce
 - Expected vs actual behavior
-- Console logs if relevant (`Console.app` > filter by "Stik")
+- Console logs if relevant (`Console.app` > filter by "Stix")
 
 ## Feature Requests
 
-Use the [Ideas Board](https://www.stik.ink/ideas) to submit and vote on feature ideas. For implementation proposals, open a GitHub issue with your proposed approach.
-
-## Community
-
-- [Discord](https://discord.gg/gG8vdCCRzW) -- Chat with other contributors
-- [X / Twitter](https://x.com/stik_app) -- Updates and announcements
-- [Ideas Board](https://www.stik.ink/ideas) -- Feature voting
+Open a [GitHub issue](https://github.com/niko-zvt/stix/issues) with the problem, the proposed approach, and how to test it.
 
 ## License
 

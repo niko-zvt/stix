@@ -3,7 +3,7 @@
 
 use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
-use stik_lib::{embeddings::EmbeddingIndex, index::NoteIndex, notes, settings, storage, trash};
+use stix_lib::{embeddings::EmbeddingIndex, index::NoteIndex, notes, settings, storage, trash};
 
 // All tests share one process-local settings/cache directory; each test may
 // still create its own concurrent writers/movers inside this guard.
@@ -12,12 +12,12 @@ static PROFILE: Mutex<()> = Mutex::new(());
 fn vault() -> &'static PathBuf {
     static VAULT: OnceLock<PathBuf> = OnceLock::new();
     VAULT.get_or_init(|| {
-        let profile = std::env::temp_dir().join(format!("stik-release-{}", uuid::Uuid::new_v4()));
+        let profile = std::env::temp_dir().join(format!("stix-release-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir(&profile).unwrap();
-        std::env::set_var("STIK_DEV_ROOT", &profile);
+        std::env::set_var("STIX_DEV_ROOT", &profile);
         settings::get_settings().unwrap();
         eprintln!("Release regression data: {}", profile.display());
-        storage::stik_root().unwrap()
+        storage::stix_root().unwrap()
     })
 }
 
@@ -121,7 +121,7 @@ fn racing_moves_never_replace_the_winning_note() {
 fn ordinary_update_cannot_replace_locked_content() {
     let _profile = PROFILE.lock().unwrap_or_else(|error| error.into_inner());
     let note = vault().join("locked-regression.md");
-    let ciphertext = "---stik-locked---\nnonce: fixture\nencrypted-fixture";
+    let ciphertext = "---stix-locked---\nnonce: fixture\nencrypted-fixture";
     std::fs::write(&note, ciphertext).unwrap();
     assert!(notes::update_note_inner(
         note.to_string_lossy().into_owned(),
@@ -179,14 +179,14 @@ fn folder_rename_immediately_updates_nested_search_and_embedding_paths() {
     embeddings.ensure_loaded();
     embeddings.add_entry(
         &saved.path,
-        stik_lib::embeddings::NoteEmbedding {
+        stix_lib::embeddings::NoteEmbedding {
             vector: vec![1.0, 2.0],
             content_hash: "unchanged-body".into(),
             language: "en".into(),
         },
     );
 
-    stik_lib::folders::rename_folder_inner(
+    stix_lib::folders::rename_folder_inner(
         "RenameTree".into(),
         "RenamedTree".into(),
         &index,
@@ -225,10 +225,10 @@ fn external_lock_status_never_reads_external_bytes_and_rejects_managed_escapes()
     let external = root.parent().unwrap().join("external-lock-status.md");
     // Invalid UTF-8 would fail storage::read_file: false establishes no content read.
     std::fs::write(&external, [0xff, 0xfe]).unwrap();
-    assert!(!stik_lib::note_lock::is_note_locked(external.to_string_lossy().into_owned()).unwrap());
-    let encrypted = "---stik-locked---\nexternal encrypted fixture";
+    assert!(!stix_lib::note_lock::is_note_locked(external.to_string_lossy().into_owned()).unwrap());
+    let encrypted = "---stix-locked---\nexternal encrypted fixture";
     std::fs::write(&external, encrypted).unwrap();
-    assert!(!stik_lib::note_lock::is_note_locked(external.to_string_lossy().into_owned()).unwrap());
+    assert!(!stix_lib::note_lock::is_note_locked(external.to_string_lossy().into_owned()).unwrap());
     assert!(notes::update_note_inner(
         external.to_string_lossy().into_owned(),
         "plaintext".into(),
@@ -239,16 +239,16 @@ fn external_lock_status_never_reads_external_bytes_and_rejects_managed_escapes()
     .is_err());
     assert_eq!(std::fs::read_to_string(&external).unwrap(), encrypted);
     let missing = root.parent().unwrap().join("absent-external.md");
-    assert!(stik_lib::note_lock::is_note_locked(missing.to_string_lossy().into_owned()).is_err());
+    assert!(stix_lib::note_lock::is_note_locked(missing.to_string_lossy().into_owned()).is_err());
     #[cfg(unix)]
     {
         let escape = root.join("escaped-locked.md");
         std::os::unix::fs::symlink(&external, &escape).unwrap();
         assert!(
-            stik_lib::note_lock::is_note_locked(escape.to_string_lossy().into_owned()).is_err()
+            stix_lib::note_lock::is_note_locked(escape.to_string_lossy().into_owned()).is_err()
         );
     }
     let managed = root.join("managed-lock-status.md");
-    std::fs::write(&managed, "---stik-locked---\nfixture").unwrap();
-    assert!(stik_lib::note_lock::is_note_locked(managed.to_string_lossy().into_owned()).unwrap());
+    std::fs::write(&managed, "---stix-locked---\nfixture").unwrap();
+    assert!(stix_lib::note_lock::is_note_locked(managed.to_string_lossy().into_owned()).unwrap());
 }

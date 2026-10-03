@@ -62,7 +62,7 @@ export default function LockPrompt({
       onClose={onCancel}
       initialFocusRef={cancelRef}
       backdropClassName="fixed inset-0 z-[500] flex items-center justify-center bg-black/40 backdrop-blur-sm"
-      panelClassName="w-72 rounded-2xl bg-bg border border-line shadow-stik p-6 text-center"
+      panelClassName="w-72 rounded-2xl bg-bg border border-line shadow-stix p-6 text-center"
       titleClassName="flex flex-col text-[14px] font-medium text-ink"
       descriptionClassName="mt-1 text-[12px] leading-relaxed text-stone"
     >

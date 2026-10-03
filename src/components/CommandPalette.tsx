@@ -7,7 +7,7 @@ import type {
   SearchResult,
   SemanticResult,
   FolderStats,
-  StikSettings,
+  StixSettings,
   TrashedNote,
 } from "@/types";
 import {
@@ -25,7 +25,7 @@ import { createLatestRequestGate } from "@/utils/latestRequest";
 import { errorMessage } from "@/utils/appError";
 import LiveRegion from "./ui/LiveRegion";
 
-/** Derive a human-readable title from a Stik filename like `20260310-114522-my-note-a1b2.md` */
+/** Derive a human-readable title from a Stix filename like `20260310-114522-my-note-a1b2.md` */
 function titleFromFilename(filename: string): string {
   const stem = filename.replace(/\.md$/i, "");
   const parts = stem.split("-");
@@ -88,7 +88,7 @@ export default function CommandPalette() {
   const [sidebarPosition, setSidebarPosition] = useState<"left" | "right">(
     "left",
   );
-  const settingsRef = useRef<StikSettings | null>(null);
+  const settingsRef = useRef<StixSettings | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -128,7 +128,7 @@ export default function CommandPalette() {
     invoke<string[]>("list_folders")
       .then(setFolders)
       .catch((error) => setToast(errorMessage(error, t("common.unknownError"))));
-    invoke<StikSettings>("get_settings")
+    invoke<StixSettings>("get_settings")
       .then((s) => {
         settingsRef.current = s;
         setFolderColors(s.folder_colors ?? {});
@@ -136,7 +136,7 @@ export default function CommandPalette() {
       })
       .catch((error) => setToast(errorMessage(error, t("common.unknownError"))));
 
-    const unlistenSettings = listen<StikSettings>(
+    const unlistenSettings = listen<StixSettings>(
       "settings-changed",
       (event) => {
         settingsRef.current = event.payload;
@@ -352,17 +352,13 @@ export default function CommandPalette() {
     }
   }, [loadFolderStats, query, selectedFolder]);
 
-  // Refresh note list when files change externally (local watcher or iCloud sync)
+  // Refresh note list when files change externally.
   useEffect(() => {
     const unlistenFiles = listen("files-changed", () => {
       refreshAfterChange();
     });
-    const unlistenICloud = listen("icloud-files-changed", () => {
-      refreshAfterChange();
-    });
     return () => {
       unlistenFiles.then((fn) => fn());
-      unlistenICloud.then((fn) => fn());
     };
   }, [refreshAfterChange]);
 
@@ -414,7 +410,7 @@ export default function CommandPalette() {
           setSelectedFolder(null);
         }
         // Re-fetch settings (folder deletion may affect them) and notify other windows
-        const fresh = await invoke<StikSettings>("get_settings");
+        const fresh = await invoke<StixSettings>("get_settings");
         settingsRef.current = fresh;
         await emit("settings-changed", fresh);
         await refreshAfterChange();
@@ -447,9 +443,9 @@ export default function CommandPalette() {
 
   // Save settings helper — keeps settingsRef in sync and notifies other windows
   const saveAndEmitSettings = useCallback(
-    async (patch: Partial<StikSettings>) => {
+    async (patch: Partial<StixSettings>) => {
       const current =
-        settingsRef.current ?? (await invoke<StikSettings>("get_settings"));
+        settingsRef.current ?? (await invoke<StixSettings>("get_settings"));
       const updated = { ...current, ...patch };
       settingsRef.current = updated;
       await invoke("save_settings", { settings: updated });

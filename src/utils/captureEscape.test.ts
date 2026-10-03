@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { shouldSaveOnGlobalEscape } from "./captureEscape";
+import { shouldSinkOnEscape } from "./captureEscape";
 
 const base = {
   defaultPrevented: false,
@@ -11,33 +11,33 @@ const base = {
   isPinning: false,
 };
 
-describe("shouldSaveOnGlobalEscape", () => {
-  it("does not save when escape was already handled by editor", () => {
-    expect(shouldSaveOnGlobalEscape({ ...base, defaultPrevented: true })).toBe(false);
+describe("shouldSinkOnEscape", () => {
+  it("does not sink when escape was already handled by editor", () => {
+    expect(shouldSinkOnEscape({ ...base, defaultPrevented: true })).toBe(false);
   });
 
-  it("does not save while slash autocomplete is open", () => {
-    expect(shouldSaveOnGlobalEscape({ ...base, isAutocompleteOpen: true })).toBe(false);
+  it("does not sink while slash autocomplete is open", () => {
+    expect(shouldSinkOnEscape({ ...base, isAutocompleteOpen: true })).toBe(false);
   });
 
-  it("does not save when folder picker is visible", () => {
-    expect(shouldSaveOnGlobalEscape({ ...base, showPicker: true })).toBe(false);
+  it("does not sink when folder picker is visible", () => {
+    expect(shouldSinkOnEscape({ ...base, showPicker: true })).toBe(false);
   });
 
-  it("does not save when copy menu is open", () => {
-    expect(shouldSaveOnGlobalEscape({ ...base, isCopyMenuOpen: true })).toBe(false);
+  it("does not sink when copy menu is open", () => {
+    expect(shouldSinkOnEscape({ ...base, isCopyMenuOpen: true })).toBe(false);
   });
 
-  it("does not save while saving or pinning is in progress", () => {
-    expect(shouldSaveOnGlobalEscape({ ...base, isSaving: true })).toBe(false);
-    expect(shouldSaveOnGlobalEscape({ ...base, isPinning: true })).toBe(false);
+  it("does not sink while saving or pinning is in progress", () => {
+    expect(shouldSinkOnEscape({ ...base, isSaving: true })).toBe(false);
+    expect(shouldSinkOnEscape({ ...base, isPinning: true })).toBe(false);
   });
 
-  it("does not save when in link popover", () => {
-    expect(shouldSaveOnGlobalEscape({ ...base, inLinkPopover: true })).toBe(false);
+  it("does not sink when in link popover", () => {
+    expect(shouldSinkOnEscape({ ...base, inLinkPopover: true })).toBe(false);
   });
 
-  it("saves only when no overlay or transient state is active", () => {
-    expect(shouldSaveOnGlobalEscape(base)).toBe(true);
+  it("sinks only when no overlay or transient state is active", () => {
+    expect(shouldSinkOnEscape(base)).toBe(true);
   });
 });

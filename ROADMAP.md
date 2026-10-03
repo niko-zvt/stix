@@ -2,7 +2,7 @@
 
 > Current version: **0.8.0**
 
-Stik ships when a phase is useful, not when it is complete. Items are moved to
+Stix ships when a phase is useful, not when it is complete. Items are moved to
 ✅ only when they are on `main` and released — not when a branch exists.
 
 ---
@@ -12,7 +12,7 @@ Stik ships when a phase is useful, not when it is complete. Items are moved to
 ### Phase 1 — Core Capture (v0.1.0) ✅
 
 - [x] Global shortcut to summon floating post-it window
-- [x] Type, close, note saved as markdown in `~/Documents/Stik/`
+- [x] Type, close, note saved as markdown in `~/Documents/Stix/`
 - [x] Folder organization (Inbox, Work, Ideas, Personal, Projects)
 - [x] Search modal with highlighted matches
 - [x] Manager modal (browse, delete, rename, move notes)
@@ -78,7 +78,7 @@ Stik ships when a phase is useful, not when it is complete. Items are moved to
 
 - [x] Raycast extension (`0xMassi/stik-raycast`)
 - [x] Internationalization foundation + Simplified Chinese (v0.9.0-dev)
-- [ ] CLI/API for scripting (`stik capture "text"`)
+- [ ] CLI/API for scripting (`stix capture "text"`)
 - [ ] PKM integration (folder aliasing to Obsidian vaults, Logseq)
 - [ ] Export rules (trigger-based actions on note save)
 - [ ] Alfred extension
@@ -89,7 +89,7 @@ Planned in detail in [MOBILE_PLAN.md](MOBILE_PLAN.md). Desktop, iOS, Android
 and cloud sync ship together as 1.0.
 
 **One React Native app for both platforms**
-- [ ] `@stik/tokens` — design tokens extracted from `src/themes`, consumed by
+- [ ] `@stix/tokens` — design tokens extracted from `src/themes`, consumed by
       desktop, the editor bundle, and NativeWind
 - [ ] Expo bare project with NativeWind + react-native-reusables (the
       shadcn/ui port for React Native)
@@ -103,7 +103,7 @@ and cloud sync ship together as 1.0.
 - [ ] iOS iCloud Drive module; Android Storage Access Framework module
 - [ ] Android share target and quick-settings tile
 
-**Stik Cloud — the critical path, roughly 3x the app work**
+**Stix Cloud — the critical path, roughly 3x the app work**
 - [ ] Auth and account
 - [ ] E2E envelope: Argon2id, per-note keys, recovery key. Zero-knowledge, so
       no password reset exists by design

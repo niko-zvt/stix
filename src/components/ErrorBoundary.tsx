@@ -24,7 +24,7 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
     // Kept as console output rather than analytics: crash contents can include
-    // note text, and Stik never sends note content anywhere.
+    // note text, and Stix never sends note content anywhere.
     console.error("Unhandled render error:", error, info.componentStack);
   }
 

@@ -40,7 +40,7 @@ export default function Dialog({
   onClose,
   initialFocusRef,
   backdropClassName = "fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm",
-  panelClassName = "rounded-xl border border-line bg-bg shadow-stik",
+  panelClassName = "rounded-xl border border-line bg-bg shadow-stix",
   panelStyle,
   titleClassName,
   descriptionClassName,

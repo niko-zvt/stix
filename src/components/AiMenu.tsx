@@ -163,7 +163,7 @@ export default function AiMenu({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full right-0 mt-1 rounded-lg border border-line bg-bg shadow-stik overflow-hidden z-[240]">
+        <div className="absolute top-full right-0 mt-1 rounded-lg border border-line bg-bg shadow-stix overflow-hidden z-[240]">
           {/* Loading state */}
           {isProcessing && (
             <div className="px-4 py-3 flex items-center gap-2 text-[11px] text-stone min-w-[200px]">

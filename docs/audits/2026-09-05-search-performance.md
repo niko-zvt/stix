@@ -119,10 +119,10 @@ Existing warnings were not hidden: release-mode Rust compilation reports unused 
 `./scripts/build-dev.sh build` passed using Bun 1.4.1 and produced:
 
 ```text
-/private/tmp/stik-slop-cleanup.Ocz1cZ/src-tauri/target/aarch64-apple-darwin/debug/bundle/macos/Stik.app
+/private/tmp/stix-slop-cleanup.Ocz1cZ/src-tauri/target/aarch64-apple-darwin/debug/bundle/macos/Stix.app
 ```
 
-The app contains the optimized `4347d5d` source. Both Stik and its DarwinKit sidecar are arm64 executables; the bundle is version 0.8.0 with minimum macOS 14. `codesign --verify --deep --strict --verbose=2` passed. The bundled Stik executable's SHA-256 is `8b01b0d3bbcc54b000ea3acb378c0faaa3cbb80cb6d129c0d95f13a6757a9a57`.
+The app contains the optimized `4347d5d` source. Both Stix and its DarwinKit sidecar are arm64 executables; the bundle is version 0.8.0 with minimum macOS 14. `codesign --verify --deep --strict --verbose=2` passed. The bundled Stix executable's SHA-256 is `8b01b0d3bbcc54b000ea3acb378c0faaa3cbb80cb6d129c0d95f13a6757a9a57`.
 
 This is an ad-hoc-signed **debug** build for functional testing, not the release benchmark executable and not a notarized distribution. It was not installed or launched. Manual acceptance in capture, sticked-note, and viewing windows remains unverified; test search, folder switching, edited-note freshness, and locked-note exclusion before promotion. The artifact comes from `codex/slop-cleanup`, not `develop`.
 
@@ -139,7 +139,7 @@ bun run build
 Run the same benchmark at each revision:
 
 ```sh
-STIK_PERF_SAMPLES=31 cargo test \
+STIX_PERF_SAMPLES=31 cargo test \
   --manifest-path src-tauri/Cargo.toml \
   --release --lib --all-features \
   --target aarch64-apple-darwin --locked --offline \
@@ -148,14 +148,14 @@ STIK_PERF_SAMPLES=31 cargo test \
 
 If Cargo dependencies are not cached, omit `--offline` for initial preparation. Do not substitute a debug build: release optimization of dependencies materially affects these workloads.
 
-To match the recorded comparison, copy each emitted `release/deps/stik_lib-*` test executable to a separate before/after path. Then run those two binaries without recompiling, in before/after/after/before/before/after order:
+To match the recorded comparison, copy each emitted `release/deps/stix_lib-*` test executable to a separate before/after path. Then run those two binaries without recompiling, in before/after/after/before/before/after order:
 
 ```sh
-STIK_PERF_SAMPLES=31 /usr/bin/time -l /path/to/saved-test-binary \
+STIX_PERF_SAMPLES=31 /usr/bin/time -l /path/to/saved-test-binary \
   benchmark_note_index --ignored --nocapture --test-threads=1
 ```
 
-Each invocation prints raw samples, P50/P95, result counts, cache bytes, and result digests. To isolate one case for profiling, add `STIK_PERF_CASE=large/common`. Pool the 93 samples per workload/version for the table, and inspect each process's median rather than treating all repeated samples as independent process runs.
+Each invocation prints raw samples, P50/P95, result counts, cache bytes, and result digests. To isolate one case for profiling, add `STIX_PERF_CASE=large/common`. Pool the 93 samples per workload/version for the table, and inspect each process's median rather than treating all repeated samples as independent process runs.
 
 ## Remaining work
 

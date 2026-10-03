@@ -6,7 +6,7 @@ use std::time::SystemTime;
 
 use chrono::{DateTime, Local};
 
-use super::folders::get_stik_folder;
+use super::folders::get_stix_folder;
 
 const PREVIEW_LENGTH: usize = 150;
 
@@ -56,11 +56,11 @@ impl NoteIndex {
     }
 
     pub fn build(&self) -> Result<(), String> {
-        let stik_folder = get_stik_folder()?;
+        let stix_folder = get_stix_folder()?;
         let mut new_entries = HashMap::new();
 
-        // Recursively index every .md under the Stik root (Obsidian-style nesting).
-        index_dir(&stik_folder, &stik_folder, &mut new_entries);
+        // Recursively index every .md under the Stix root (Obsidian-style nesting).
+        index_dir(&stix_folder, &stix_folder, &mut new_entries);
 
         let mut entries = self.entries.lock().unwrap_or_else(|e| e.into_inner());
         *entries = new_entries;
@@ -100,10 +100,10 @@ impl NoteIndex {
         }
     }
 
-    /// Handle external changes from iCloud sync — re-index specific paths.
-    /// Called when DarwinKit pushes icloud.files_changed notifications.
+    /// Handle external changes — re-index specific paths.
+    /// Called when the file watcher reports changed notes.
     pub fn notify_external_change(&self, paths: &[String]) {
-        let stik_folder = match get_stik_folder() {
+        let stix_folder = match get_stix_folder() {
             Ok(f) => f,
             Err(_) => return,
         };
@@ -113,13 +113,13 @@ impl NoteIndex {
         for path_str in paths {
             let path = PathBuf::from(path_str);
 
-            // Only index .md files within the Stik root
-            if !super::path_security::is_visible_note_path(&stik_folder, &path) {
+            // Only index .md files within the Stix root
+            if !super::path_security::is_visible_note_path(&stix_folder, &path) {
                 continue;
             }
 
-            // Folder = parent path relative to the Stik root (supports nesting).
-            let folder = super::folders::note_folder(&stik_folder, &path);
+            // Folder = parent path relative to the Stix root (supports nesting).
+            let folder = super::folders::note_folder(&stix_folder, &path);
 
             // Try to re-index — if file was deleted, remove from index
             if super::storage::path_exists(path_str) {
@@ -212,7 +212,7 @@ pub fn rebuild_index(index: tauri::State<'_, NoteIndex>) -> Result<bool, String>
 
 /// Recursively index every `.md` file under `dir`, skipping hidden directories
 /// (`.assets`, `.git`, …). `folder` is each note's parent path relative to root.
-fn index_dir(stik_root: &Path, dir: &Path, into: &mut HashMap<String, IndexedNote>) {
+fn index_dir(stix_root: &Path, dir: &Path, into: &mut HashMap<String, IndexedNote>) {
     let entries = match super::storage::list_dir(&dir.to_string_lossy()) {
         Ok(e) => e,
         Err(_) => return,
@@ -222,10 +222,10 @@ fn index_dir(stik_root: &Path, dir: &Path, into: &mut HashMap<String, IndexedNot
             if e.name.starts_with('.') {
                 continue;
             }
-            index_dir(stik_root, &dir.join(&e.name), into);
-        } else if super::path_security::is_visible_note_path(stik_root, &dir.join(&e.name)) {
+            index_dir(stix_root, &dir.join(&e.name), into);
+        } else if super::path_security::is_visible_note_path(stix_root, &dir.join(&e.name)) {
             let path = dir.join(&e.name);
-            let folder = super::folders::note_folder(stik_root, &path);
+            let folder = super::folders::note_folder(stix_root, &path);
             if let Some(indexed) = read_indexed_note(&path, &folder) {
                 into.insert(indexed.entry.path.clone(), indexed);
             }
@@ -250,6 +250,7 @@ fn read_indexed_note(path: &PathBuf, folder: &str) -> Option<IndexedNote> {
             .unwrap_or_else(|| fname.to_string());
         (title, String::new(), None)
     } else {
+        let content = super::note_geometry::strip_note_geometry(&content);
         let title = extract_title(&content);
         let preview = if content.len() > PREVIEW_LENGTH {
             let mut end = PREVIEW_LENGTH;
@@ -380,13 +381,34 @@ mod tests {
     }
 
     #[test]
+    fn indexed_note_hides_window_geometry() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock should be after unix epoch")
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!("stix-geometry-index-{unique}"));
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("note.md");
+        fs::write(
+            &path,
+            "<!-- stix:size 400x280 -->\n<!-- stix:place 48,24 screen 0,0 2560x1440 -->\nVisible title\n",
+        )
+        .unwrap();
+        let indexed = read_indexed_note(&path, "Inbox").unwrap();
+        assert_eq!(indexed.entry.title, "Visible title");
+        assert!(!indexed.entry.preview.contains("stix:size"));
+        assert!(!indexed.search.unwrap().original.contains("stix:place"));
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn note_entry_created_uses_modified_time_not_filename_timestamp() {
         let unique = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("clock should be after unix epoch")
             .as_nanos();
 
-        let test_dir = std::env::temp_dir().join(format!("stik-index-test-{}", unique));
+        let test_dir = std::env::temp_dir().join(format!("stix-index-test-{}", unique));
         fs::create_dir_all(&test_dir).expect("create temp test dir");
 
         let note_path: PathBuf = test_dir.join("20000101-000000-legacy-title.md");
@@ -452,7 +474,7 @@ mod tests {
         let note_path = test_dir.join("locked.md");
         fs::write(
             &note_path,
-            "---stik-locked---\nnonce:dGVzdA==\ndata:c2VjcmV0",
+            "---stix-locked---\nnonce:dGVzdA==\ndata:c2VjcmV0",
         )
         .unwrap();
 
@@ -522,7 +544,7 @@ mod tests {
             (
                 "locked",
                 "Inbox",
-                "---stik-locked---\nnonce:needle\ndata:needle",
+                "---stix-locked---\nnonce:needle\ndata:needle",
             ),
         ]
         .into_iter()
@@ -603,7 +625,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .expect("clock should be after unix epoch")
             .as_nanos();
-        let directory = std::env::temp_dir().join(format!("stik-index-{label}-{unique}"));
+        let directory = std::env::temp_dir().join(format!("stix-index-{label}-{unique}"));
         fs::create_dir_all(&directory).unwrap();
         directory
     }

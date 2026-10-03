@@ -1,5 +1,5 @@
 /**
- * EditorWindow — Stik's full editor mode.
+ * EditorWindow — Stix's full editor mode.
  *
  * Resizable main window (windows.rs "editor", Overlay title bar) reusing the same
  * CodeMirror Editor as the sticky. Left: a folder dropdown (nested, Obsidian-style;
@@ -32,14 +32,14 @@ import { errorMessage } from "@/utils/appError";
 import type {
   NoteInfo,
   SearchResult,
-  StikSettings,
+  StixSettings,
   TrashedNote,
 } from "@/types";
 
 const AUTOSAVE_DELAY_MS = 600;
 const SEARCH_DELAY_MS = 180;
-const PINNED_KEY = "stik.editor.pinned";
-const EXPANDED_KEY = "stik.editor.expanded";
+const PINNED_KEY = "stix.editor.pinned";
+const EXPANDED_KEY = "stix.editor.expanded";
 const ARCHIVE_FOLDER = "Archive";
 const ICONS: Record<string, React.ReactNode> = {
   folder: <path d="M3 8a2 2 0 0 1 2-2h3.6a2 2 0 0 1 1.4.6L11.8 8H19a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />,
@@ -196,7 +196,7 @@ export default function EditorWindow() {
 
   useEffect(() => {
     loadFolders().then((f) => setActiveFolder((cur) => cur || f[0] || ""));
-    invoke<StikSettings>("get_settings")
+    invoke<StixSettings>("get_settings")
       .then((s) => {
         setFolderColors(s.folder_colors || {});
         setFolderIcons(s.folder_icons || {});
@@ -204,7 +204,7 @@ export default function EditorWindow() {
       })
       .catch(() => {});
 
-    const unlisten = listen<StikSettings>("settings-changed", (event) => {
+    const unlisten = listen<StixSettings>("settings-changed", (event) => {
       setFolderColors(event.payload.folder_colors || {});
       setFolderIcons(event.payload.folder_icons || {});
       setLoadRemoteImages(event.payload.load_remote_images ?? false);
@@ -315,7 +315,6 @@ export default function EditorWindow() {
     const listeners = [
       getCurrentWindow().onFocusChanged(({ payload: focused }) => { if (focused) refresh(); }),
       listen("files-changed", refresh),
-      listen("icloud-files-changed", refresh),
     ];
     return () => { listeners.forEach((listener) => { void listener.then((unlisten) => unlisten()); }); };
   }, [loadFolders, refreshNotes]);
@@ -354,7 +353,7 @@ export default function EditorWindow() {
 
   const persistMeta = useCallback(async (colors: Record<string, string>, icons: Record<string, string>) => {
     try {
-      const settings = await invoke<StikSettings>("get_settings");
+      const settings = await invoke<StixSettings>("get_settings");
       settings.folder_colors = colors;
       settings.folder_icons = icons;
       await invoke("save_settings", { settings });
@@ -402,7 +401,7 @@ export default function EditorWindow() {
       const text = await invoke<string>("get_note_content", { path });
       if (!gate.isLatest(token)) return;
       // A file may have been locked after the list was loaded.
-      if (text.startsWith("---stik-locked---")) throw new Error(t("editor.lockedNoteUnsupported"));
+      if (text.startsWith("---stix-locked---")) throw new Error(t("editor.lockedNoteUnsupported"));
       const separator = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
       const folderPath = separator >= 0 ? path.slice(0, separator) : "";
       setActivePath(path);
@@ -492,7 +491,7 @@ export default function EditorWindow() {
             setContent("");
           }
           try {
-            const s2 = await invoke<StikSettings>("get_settings");
+            const s2 = await invoke<StixSettings>("get_settings");
             setFolderColors(s2.folder_colors || {});
             setFolderIcons(s2.folder_icons || {});
           } catch {
@@ -555,7 +554,7 @@ export default function EditorWindow() {
       try {
         await withSavedNote(async () => {
           const base = path === activePath ? content : await invoke<string>("get_note_content", { path });
-          if (base.startsWith("---stik-locked---")) throw new Error(t("editor.lockedNoteUnsupported"));
+          if (base.startsWith("---stix-locked---")) throw new Error(t("editor.lockedNoteUnsupported"));
           const updated = renameInContent(base, title);
           await invoke("update_note", {
             path,
@@ -859,7 +858,7 @@ export default function EditorWindow() {
                     setConfirmFolderDelete(null);
                   }}
                 />
-                <div className="absolute left-2.5 right-2.5 top-full mt-1 max-h-[440px] overflow-y-auto scrollbar-hide bg-bg rounded-[10px] shadow-stik border border-line/50 z-20 p-1">
+                <div className="absolute left-2.5 right-2.5 top-full mt-1 max-h-[440px] overflow-y-auto scrollbar-hide bg-bg rounded-[10px] shadow-stix border border-line/50 z-20 p-1">
                   {tree.length === 0 ? <p className="px-2 py-2 text-xs text-stone">{t("editor.noFolders")}</p> : renderTree(tree, 0)}
                   <div className="mt-1 border-t border-line/50 pt-1">
                     {addingUnder === "" ? (
@@ -1008,7 +1007,7 @@ export default function EditorWindow() {
                                   : (current - 1 + items.length) % items.length;
                             items[next]?.focus();
                           }}
-                          className="absolute top-8 right-1.5 min-w-[160px] bg-bg rounded-[10px] shadow-stik border border-line/50 overflow-hidden z-20 py-1"
+                          className="absolute top-8 right-1.5 min-w-[160px] bg-bg rounded-[10px] shadow-stix border border-line/50 overflow-hidden z-20 py-1"
                         >
                           <MenuItem onClick={() => togglePin(r.path)} icon={<PinIcon />} label={t(isPinned ? "editor.unpin" : "editor.pinToTop")} />
                           <MenuItem onClick={() => startRename(r)} icon={<Pencil />} label={t("common.rename")} />

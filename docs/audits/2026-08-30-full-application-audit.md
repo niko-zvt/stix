@@ -1,4 +1,4 @@
-# Stik full-application audit
+# Stix full-application audit
 
 **Audit date:** 2026-08-30  
 **Repository:** [0xMassi/stik_app](https://github.com/0xMassi/stik_app)  
@@ -7,9 +7,9 @@
 
 ## Executive summary
 
-Stik has a strong product core: instant capture, plain Markdown ownership, local-first storage, unusually broad native macOS integration, and a meaningful automated test base. The product is differentiated and the code shows care around editor behavior, poisoned mutex recovery, settings migrations, and on-device AI.
+Stix has a strong product core: instant capture, plain Markdown ownership, local-first storage, unusually broad native macOS integration, and a meaningful automated test base. The product is differentiated and the code shows care around editor behavior, poisoned mutex recovery, settings migrations, and on-device AI.
 
-It is not ready for a new stable release without a hardening pass. The most urgent problem is a Markdown asset path-traversal flaw that can delete or move files outside Stik's `.assets` directories when a crafted or synced note is deleted or moved. There are also important trust problems: released builds enable analytics before consent while the README and security policy say there is no telemetry, and the app advertises macOS 10.15 support while the bundled Swift sidecar requires macOS 14.
+It is not ready for a new stable release without a hardening pass. The most urgent problem is a Markdown asset path-traversal flaw that can delete or move files outside Stix's `.assets` directories when a crafted or synced note is deleted or moved. There are also important trust problems: released builds enable analytics before consent while the README and security policy say there is no telemetry, and the app advertises macOS 10.15 support while the bundled Swift sidecar requires macOS 14.
 
 Performance will degrade with vault size. Search can read every long note from disk for every debounced keystroke, the full note index is rebuilt synchronously during startup and periodically, and every Tauri window downloads/parses the same 1.27 MB JavaScript entry bundle. The resulting behavior is at odds with the product's promise of immediate capture.
 
@@ -48,7 +48,7 @@ This audit did not include a signed-release installation matrix, a live VoiceOve
 
 ## Critical and high-risk findings
 
-### 1. Critical: Markdown asset path traversal can delete or move files outside Stik
+### 1. Critical: Markdown asset path traversal can delete or move files outside Stix
 
 `extract_asset_filenames` accepts everything after `.assets/` until punctuation or whitespace (`src-tauri/src/commands/notes.rs:476`). `move_note_assets` and `delete_note_assets` then join that value directly to the asset directory (`notes.rs:516-539`) without rejecting `..`, separators, absolute components, symlinks, or paths that canonicalize outside the directory.
 
@@ -58,13 +58,13 @@ A crafted or Git/iCloud-synced note can contain a reference such as:
 ![](.assets/../../../../Desktop/important-file)
 ```
 
-Deleting that note can delete the resolved file. Moving the note can copy it elsewhere and then delete the source. This requires the file to exist and the user to trigger a delete or move, but it crosses Stik's storage boundary and can cause arbitrary local data loss.
+Deleting that note can delete the resolved file. Moving the note can copy it elsewhere and then delete the source. This requires the file to exist and the user to trigger a delete or move, but it crosses Stix's storage boundary and can cause arbitrary local data loss.
 
 **Fix:** parse only a single generated asset filename, reject every non-normal path component and both slash styles, canonicalize parent and candidate, and verify containment before any read/copy/delete. Prefer asset IDs stored in structured metadata over scraping arbitrary Markdown. Add regression tests for `..`, encoded/Unicode separators, absolute paths, symlinks, duplicate references, and shared references. Review past releases and decide whether coordinated disclosure/security-advisory handling is appropriate.
 
 ### 2. P1: analytics behavior contradicts the privacy promise
 
-The README says “no tracking, no telemetry” (`README.md:139`) and `SECURITY.md:63` repeats the claim. In code, `StikSettings::default()` sets `analytics_enabled: true` (`src-tauri/src/commands/settings.rs:231`). Startup creates or reads a persistent UUID at `~/.stik/analytics-id`, gathers OS version, architecture, screen resolution, app version, and locale, and sends `app_opened` to PostHog (`src-tauri/src/commands/analytics.rs:22-165`). Release builds inject the PostHog key (`.github/workflows/release.yml:98,123`).
+The README says “no tracking, no telemetry” (`README.md:139`) and `SECURITY.md:63` repeats the claim. In code, `StixSettings::default()` sets `analytics_enabled: true` (`src-tauri/src/commands/settings.rs:231`). Startup creates or reads a persistent UUID at `~/.stix/analytics-id`, gathers OS version, architecture, screen resolution, app version, and locale, and sends `app_opened` to PostHog (`src-tauri/src/commands/analytics.rs:22-165`). Release builds inject the PostHog key (`.github/workflows/release.yml:98,123`).
 
 The notice is shown only after settings load in the frontend (`src/App.tsx:341-363`), after `start_analytics` has already run during Tauri setup (`src-tauri/src/main.rs:543-557`). Its only primary action is “Got it”; it is a disclosure/opt-out flow, not consent.
 
@@ -80,7 +80,7 @@ Users on macOS 10.15–13 can therefore be offered an install whose native featu
 
 ### 4. P1: stable note writes can be truncated by interruption
 
-`origin/main` and the current branch use `fs::write` directly for local text and image writes (`src-tauri/src/commands/storage.rs:132-159`). A crash, full disk, external reader, or interruption can expose a partial/truncated note. This is especially important because Stik advertises plain files that Finder, sync tools, Obsidian, and the file watcher may read concurrently.
+`origin/main` and the current branch use `fs::write` directly for local text and image writes (`src-tauri/src/commands/storage.rs:132-159`). A crash, full disk, external reader, or interruption can expose a partial/truncated note. This is especially important because Stix advertises plain files that Finder, sync tools, Obsidian, and the file watcher may read concurrently.
 
 `origin/develop` already adds temp-file-plus-rename atomic writes and self-write suppression. This is a good fix, but it has not reached `main` or stable. Documentation currently speaks as though atomic writes are already universal, which obscures the release gap.
 
@@ -118,7 +118,7 @@ The CSP permits `img-src ... https: http:` (`src-tauri/tauri.conf.json:35`), and
 
 Deleting a note permanently removes the Markdown file and every scraped `.assets/` reference. Assets are folder-scoped, so two notes can refer to the same file; deleting either can break the other. Emptying a managed note also deletes it through the update path. There is no application trash/undo workflow.
 
-**Fix:** move notes to a Stik trash with retention and restore, provide immediate Undo, and garbage-collect an asset only after proving no remaining note references it. Store asset ownership/reference metadata or use content-addressed assets. Include delete/move recovery in the end-to-end test matrix.
+**Fix:** move notes to a Stix trash with retention and restore, provide immediate Undo, and garbage-collect an asset only after proving no remaining note references it. Store asset ownership/reference metadata or use content-addressed assets. Include delete/move recovery in the end-to-end test matrix.
 
 ### 10. P1: nested-folder work is not coherent yet (working tree only)
 
@@ -141,11 +141,11 @@ The working tree does improve `move_note` target validation with `validate_folde
 - Note-lock commands accept arbitrary path strings and do not canonicalize them into an allowed notes root (`src-tauri/src/commands/note_lock.rs:253-343`). A compromised webview can ask the backend to read, encrypt, decrypt, or overwrite same-user files. Validate extension, canonical containment, and whether an external file was explicitly opened by the user.
 - `move_note` on remote branches joins an unvalidated `target_folder` to the vault root. The local WIP fix should be extracted and tested independently.
 - Several containment checks use lexical `starts_with` rather than canonical paths. Symlinks can invalidate the intended boundary. Centralize path authorization after resolving/canonicalizing the closest existing parent.
-- The asset protocol is scoped only to Documents/Stik and iCloud/Stik (`src-tauri/tauri.conf.json:36-43`) while settings support an arbitrary custom notes directory. Inline local images in a custom vault are therefore likely denied unless the path happens to fall under the static scopes. Use an explicitly authorized scoped protocol/backend rather than a global wildcard.
+- The asset protocol is scoped only to Documents/Stix and iCloud/Stix (`src-tauri/tauri.conf.json:36-43`) while settings support an arbitrary custom notes directory. Inline local images in a custom vault are therefore likely denied unless the path happens to fall under the static scopes. Use an explicitly authorized scoped protocol/backend rather than a global wildcard.
 
 ### Note locking threat model
 
-AES-256-GCM is an appropriate content cipher, and the key file is created with owner-only permissions. However, the key is stored at `~/.stik/note-key`, not in Keychain/Secure Enclave (`src-tauri/src/commands/note_lock.rs:109-118`). Touch ID gates Stik's command path, but another process running as the same user can read the key file.
+AES-256-GCM is an appropriate content cipher, and the key file is created with owner-only permissions. However, the key is stored at `~/.stix/note-key`, not in Keychain/Secure Enclave (`src-tauri/src/commands/note_lock.rs:109-118`). Touch ID gates Stix's command path, but another process running as the same user can read the key file.
 
 Either move the key into a Keychain item protected by appropriate access control or document that note lock protects files at rest from casual access/sync exposure, not from malware or another same-user process. Add corruption, recovery-key import, key-loss, backup/restore, and authentication-expiry tests before presenting it as a strong security boundary.
 
@@ -280,7 +280,7 @@ This makes the tracker look stagnant even though work was completed. Close linke
 
 Reliability features should precede expansion. Ranked opportunities:
 
-| Rank | Opportunity | Why it fits Stik | Effort |
+| Rank | Opportunity | Why it fits Stix | Effort |
 |---:|---|---|---|
 | 1 | Trash, undo, and version recovery | Converts local-first ownership into safety; reduces fear around instant capture | Medium |
 | 2 | Vault Health screen | Shows index state, sync conflicts, backups, permissions, storage path, and repair actions | Medium |
@@ -348,4 +348,4 @@ The next stable release should not ship until:
 - On-device native AI and dictation protect user content better than a cloud-first design.
 - Stable/beta channel separation and automatic update infrastructure provide a useful delivery base once the branch/release policy is tightened.
 
-The best overall improvement is to make Stik's operational behavior match its promise: instant, local, private, and safe. The product already has the right center of gravity; the next milestone should turn that promise into enforced invariants across storage, startup, privacy, accessibility, and release engineering.
+The best overall improvement is to make Stix's operational behavior match its promise: instant, local, private, and safe. The product already has the right center of gravity; the next milestone should turn that promise into enforced invariants across storage, startup, privacy, accessibility, and release engineering.

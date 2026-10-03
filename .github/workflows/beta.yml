@@ -11,7 +11,7 @@ name: Beta Build
 #   - no Homebrew tap update
 #   - published as a GitHub *prerelease*, so it never shows as "Latest"
 #
-# Installs as a separate app ("Stik Beta", com.stik.app.beta) so it sits
+# Installs as a separate app ("Stix Beta", com.stix.app.beta) so it sits
 # alongside your stable install instead of replacing it.
 on:
   push:
@@ -100,22 +100,22 @@ jobs:
           echo "tag=beta-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
           echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
-      - name: Rebrand as Stik Beta
+      - name: Rebrand as Stix Beta
         # A distinct productName + identifier is what lets the beta install
         # next to stable. This does NOT separate your data: notes
-        # (~/Documents/Stik) and settings (~/.stik) are resolved in code, not
+        # (~/Documents/Stix) and settings (~/.stix) are resolved in code, not
         # from the bundle id, so the beta reads and writes the same files.
         run: |
           python3 - <<'PY'
           import json, os, pathlib
           p = pathlib.Path("src-tauri/tauri.conf.json")
           d = json.loads(p.read_text())
-          d["productName"] = "Stik Beta"
-          d["identifier"] = "com.stik.app.beta"
+          d["productName"] = "Stix Beta"
+          d["identifier"] = "com.stix.app.beta"
           d["version"] = os.environ["BETA_VERSION"]
           # `--bundles app` does NOT suppress the updater tarball: bundle
           # .createUpdaterArtifacts is "v1Compatible", which emits
-          # `Stik Beta.app.tar.gz (updater)` anyway and then fails the build
+          # `Stix Beta.app.tar.gz (updater)` anyway and then fails the build
           # with "A public key has been found, but no private key" because we
           # deliberately withhold TAURI_SIGNING_PRIVATE_KEY from beta. Turning
           # it off is what actually delivers the "no updater artifacts" the
@@ -130,7 +130,7 @@ jobs:
           upd = d.setdefault("plugins", {}).get("updater")
           if upd is not None:
               upd["endpoints"] = [
-                  "https://github.com/0xMassi/stik_app/releases/download/beta-no-updates/latest.json"
+                  "https://github.com/niko-zvt/stix/releases/download/beta-no-updates/latest.json"
               ]
           p.write_text(json.dumps(d, indent=2))
           print(d["productName"], d["identifier"], d["version"])
@@ -167,7 +167,6 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          POSTHOG_API_KEY: ${{ secrets.POSTHOG_API_KEY }}
         with:
           tauriScript: bun run tauri
           # No tagName: tauri-action builds only. The prerelease is created
@@ -189,7 +188,6 @@ jobs:
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          POSTHOG_API_KEY: ${{ secrets.POSTHOG_API_KEY }}
         with:
           tauriScript: bun run tauri
           args: --target aarch64-apple-darwin --bundles app
@@ -202,8 +200,8 @@ jobs:
           VERSION: ${{ steps.meta.outputs.version }}
         run: |
           set -euo pipefail
-          APP="src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Stik Beta.app"
-          DMG="${RUNNER_TEMP}/Stik-Beta_${VERSION}_aarch64.dmg"
+          APP="src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Stix Beta.app"
+          DMG="${RUNNER_TEMP}/Stix-Beta_${VERSION}_aarch64.dmg"
 
           if [ ! -d "$APP" ]; then
             echo "::error::Expected .app not found at $APP"
@@ -211,7 +209,7 @@ jobs:
             exit 1
           fi
 
-          hdiutil create -volname "Stik Beta" -srcfolder "$APP" -ov -format UDZO "$DMG"
+          hdiutil create -volname "Stix Beta" -srcfolder "$APP" -ov -format UDZO "$DMG"
           codesign --sign "$APPLE_SIGNING_IDENTITY" --timestamp "$DMG"
           codesign --verify --verbose=2 "$DMG"
           echo "DMG_PATH=$DMG" >> "$GITHUB_ENV"
@@ -229,13 +227,13 @@ jobs:
               echo "> 🔓 **Signed but _not_ notarized.** Built with notarization"
               echo "> skipped, so Gatekeeper will refuse the first launch. Right-click"
               echo "> the app → **Open** → **Open**, or run:"
-              echo "> \`xattr -dr com.apple.quarantine \"/Applications/Stik Beta.app\"\`"
+              echo "> \`xattr -dr com.apple.quarantine \"/Applications/Stix Beta.app\"\`"
               echo
             fi
-            echo "Installs as **Stik Beta** (\`com.stik.app.beta\`) alongside your stable Stik."
+            echo "Installs as **Stix Beta** (\`com.stix.app.beta\`) alongside your stable Stix."
             echo
-            echo "> ⚠️ **Shares your real data.** Notes (\`~/Documents/Stik\`) and"
-            echo "> settings (\`~/.stik\`) are resolved in code, not from the bundle"
+            echo "> ⚠️ **Shares your real data.** Notes (\`~/Documents/Stix\`) and"
+            echo "> settings (\`~/.stix\`) are resolved in code, not from the bundle"
             echo "> id, so this build uses the same files as stable. Point it at a"
             echo "> scratch folder in **Settings → Folders → Notes directory** before"
             echo "> testing anything destructive."
@@ -256,6 +254,6 @@ jobs:
           gh release create "$TAG" "$DMG_PATH" \
             --target "$GITHUB_SHA" \
             --prerelease \
-            --title "Stik Beta ${VERSION}" \
+            --title "Stix Beta ${VERSION}" \
             --notes-file "${RUNNER_TEMP}/notes.md"
           echo "::notice::Published $TAG — download the DMG from the release page"

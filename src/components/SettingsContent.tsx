@@ -11,7 +11,7 @@ import type {
   DictationStatus,
   GitSyncStatus,
   ShortcutMapping,
-  StikSettings,
+  StixSettings,
   ThemeColors,
 } from "@/types";
 import { listen } from "@tauri-apps/api/event";
@@ -159,7 +159,7 @@ export function Dropdown({
               options[next]?.focus();
             }
           }}
-          className="absolute z-50 top-full left-0 right-0 mt-1 bg-bg border border-line rounded-lg shadow-stik overflow-hidden max-h-[220px] overflow-y-auto"
+          className="absolute z-50 top-full left-0 right-0 mt-1 bg-bg border border-line rounded-lg shadow-stix overflow-hidden max-h-[220px] overflow-y-auto"
         >
           {allOptions.map((option) => (
             <button
@@ -201,9 +201,9 @@ export type SettingsTab =
 
 interface SettingsContentProps {
   activeTab: SettingsTab;
-  settings: StikSettings;
+  settings: StixSettings;
   folders: string[];
-  onSettingsChange: (settings: StikSettings) => void;
+  onSettingsChange: (settings: StixSettings) => void;
   resolvedNotesDir: string;
   captureStreakLabel: string;
   captureStreakDays: number | null;
@@ -247,7 +247,7 @@ function SettingsToast({
     <div
       className={`
         fixed bottom-6 left-1/2 -translate-x-1/2 z-[250]
-        px-4 py-2.5 rounded-xl shadow-stik
+        px-4 py-2.5 rounded-xl shadow-stix
         text-[13px] font-medium bg-ink text-bg
         transition-all duration-200 ease-out
         ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}
@@ -262,69 +262,19 @@ function PrivacySection({
   settings,
   onSettingsChange,
 }: {
-  settings: StikSettings;
-  onSettingsChange: (settings: StikSettings) => void;
+  settings: StixSettings;
+  onSettingsChange: (settings: StixSettings) => void;
 }) {
   const { t } = useTranslation();
-  const [deviceId, setDeviceId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [authAvailable, setAuthAvailable] = useState(false);
   const [isLockingAll, setIsLockingAll] = useState(false);
 
-  const loadDeviceId = useCallback(async () => {
-    if (!settings.analytics_enabled) {
-      setDeviceId(null);
-      return;
-    }
-    try {
-      const id = await invoke<string | null>("get_analytics_device_id");
-      setDeviceId(id);
-    } catch {
-      setDeviceId(null);
-    }
-  }, [settings.analytics_enabled]);
-
-  const resetDeviceId = async () => {
-    try {
-      const id = await invoke<string | null>("reset_analytics_device_id");
-      setDeviceId(id);
-      setToast(t("settings.analytics.idReset"));
-    } catch (error) {
-      setToast(String(error));
-    }
-  };
-
-  const setAnalyticsEnabled = async (enabled: boolean) => {
-    onSettingsChange({
-      ...settings,
-      analytics_enabled: enabled,
-      analytics_consent_version: 1,
-      analytics_notice_dismissed: true,
-    });
-    if (!enabled) setDeviceId(null);
-
-    try {
-      await invoke("configure_analytics", { enabled });
-      if (enabled) {
-        setDeviceId(await invoke<string | null>("get_analytics_device_id"));
-      }
-    } catch (error) {
-      setToast(String(error));
-    }
-  };
-
   useEffect(() => {
-    loadDeviceId();
     invoke<boolean>("auth_available")
       .then(setAuthAvailable)
       .catch(() => {});
-  }, [loadDeviceId]);
-
-  const copyDeviceId = () => {
-    if (!deviceId) return;
-    navigator.clipboard.writeText(deviceId);
-    setToast(t("settings.deviceIdCopied"));
-  };
+  }, []);
 
   const handleLockAllNow = async () => {
     setIsLockingAll(true);
@@ -499,13 +449,6 @@ function PrivacySection({
           )}
         </div>
 
-        {/* Analytics */}
-        <div className="mt-2">
-          <p className="text-[11px] font-semibold text-stone uppercase tracking-wider mb-3">
-            {t("settings.analytics.title")}
-          </p>
-        </div>
-
         <label className="flex items-center justify-between gap-3 p-4 bg-line/30 rounded-xl border border-line/50">
           <div>
             <p className="text-[13px] text-ink font-medium">
@@ -543,33 +486,6 @@ function PrivacySection({
         <label className="flex items-center justify-between gap-3 p-4 bg-line/30 rounded-xl border border-line/50">
           <div>
             <p className="text-[13px] text-ink font-medium">
-              {t("settings.analytics.share")}
-            </p>
-            <p className="mt-1 text-[12px] text-stone leading-relaxed">
-              {t("settings.analytics.shareDescribe")}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() =>
-              void setAnalyticsEnabled(!settings.analytics_enabled)
-            }
-            className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${
-              settings.analytics_enabled ? "bg-coral" : "bg-line"
-            }`}
-            title={t("settings.analytics.toggle")}
-          >
-            <span
-              className={`absolute left-0.5 top-0.5 w-5 h-5 rounded-full bg-white transition-transform pointer-events-none ${
-                settings.analytics_enabled ? "translate-x-5" : "translate-x-0"
-              }`}
-            />
-          </button>
-        </label>
-
-        <label className="flex items-center justify-between gap-3 p-4 bg-line/30 rounded-xl border border-line/50">
-          <div>
-            <p className="text-[13px] text-ink font-medium">
               {t("settings.autoUpdate.title")}
             </p>
             <p className="mt-1 text-[12px] text-stone leading-relaxed">
@@ -596,64 +512,6 @@ function PrivacySection({
             />
           </button>
         </label>
-
-        <div className="p-4 bg-line/30 rounded-xl border border-line/50 space-y-3">
-          <div>
-            <p className="text-[13px] text-ink font-medium mb-2">
-              {t("settings.analytics.weCollect")}
-            </p>
-            <ul className="text-[12px] text-stone leading-relaxed space-y-1">
-              <li>{t("settings.analytics.collectAppOpens")}</li>
-              <li>{t("settings.analytics.collectDevice")}</li>
-              <li>{t("settings.analytics.collectScreen")}</li>
-              <li>{t("settings.analytics.collectId")}</li>
-            </ul>
-          </div>
-          <div>
-            <p className="text-[13px] text-ink font-medium mb-2">
-              {t("settings.analytics.neverCollect")}
-            </p>
-            <ul className="text-[12px] text-stone leading-relaxed space-y-1">
-              <li>{t("settings.analytics.neverNotes")}</li>
-              <li>{t("settings.analytics.neverPaths")}</li>
-              <li>{t("settings.analytics.neverIdentify")}</li>
-            </ul>
-          </div>
-        </div>
-
-        {deviceId && (
-          <div className="p-4 bg-line/30 rounded-xl border border-line/50">
-            <p className="text-[12px] text-stone mb-2">{t("settings.analytics.yourDeviceId")}</p>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 px-2.5 py-2 text-[11px] rounded-lg bg-bg border border-line text-ink font-mono truncate">
-                {deviceId}
-              </code>
-              <button
-                type="button"
-                onClick={copyDeviceId}
-                className="px-3 py-2 text-[12px] text-coral border border-coral/30 rounded-lg hover:bg-coral-light transition-colors whitespace-nowrap"
-              >
-                {t("common.copy")}
-              </button>
-              <button
-                type="button"
-                onClick={() => void resetDeviceId()}
-                className="px-3 py-2 text-[12px] text-stone border border-line rounded-lg hover:bg-line/50 transition-colors whitespace-nowrap"
-              >
-                {t("settings.analytics.resetId")}
-              </button>
-            </div>
-            <p className="mt-2 text-[11px] text-stone">
-              {t("settings.analytics.idNotLinked")}
-            </p>
-          </div>
-        )}
-
-        <div className="p-3 bg-coral-light/40 border border-coral/20 rounded-xl">
-          <p className="text-[12px] text-stone leading-relaxed">
-            {t("settings.analytics.posthog")}
-          </p>
-        </div>
       </div>
       {toast && <SettingsToast message={toast} onDone={() => setToast(null)} />}
     </>
@@ -944,8 +802,8 @@ function AppearanceSection({
   settings,
   onSettingsChange,
 }: {
-  settings: StikSettings;
-  onSettingsChange: (settings: StikSettings) => void;
+  settings: StixSettings;
+  onSettingsChange: (settings: StixSettings) => void;
 }) {
   const { t } = useTranslation();
   const [editingTheme, setEditingTheme] =
@@ -978,7 +836,7 @@ function AppearanceSection({
     });
     if (!selected) return;
 
-    // Copy into ~/.stik/fonts first: the picked file may sit anywhere, and a
+    // Copy into ~/.stix/fonts first: the picked file may sit anywhere, and a
     // font referenced in place stops working the moment the user moves it.
     let entry: CustomFontEntry;
     try {
@@ -1008,7 +866,7 @@ function AppearanceSection({
   const removeCustomFont = (path: string) => {
     const entry = customFonts.find((f) => f.path === path);
     const updated = customFonts.filter((f) => f.path !== path);
-    const patch: Partial<StikSettings> = { custom_fonts: updated };
+    const patch: Partial<StixSettings> = { custom_fonts: updated };
     // Clear font_family if it was using the removed font
     if (entry && settings.font_family === entry.name) {
       patch.font_family = null;
@@ -1069,7 +927,7 @@ function AppearanceSection({
   const deleteTheme = (id: string) => {
     const theme = customThemes.find((t) => t.id === id);
     const updated = customThemes.filter((t) => t.id !== id);
-    const newSettings: Partial<StikSettings> = { custom_themes: updated };
+    const newSettings: Partial<StixSettings> = { custom_themes: updated };
 
     if (activeTheme === id) {
       newSettings.active_theme = "system";
@@ -1852,10 +1710,10 @@ export default function SettingsContent({
   const notesDir = settings.notes_directory
     ? settings.use_directory_as_root
       ? settings.notes_directory
-      : `${settings.notes_directory}/Stik`
-    : resolvedNotesDir || "~/Documents/Stik";
+      : `${settings.notes_directory}/Stix`
+    : resolvedNotesDir || "~/Documents/Stix";
   const linkedRepoPath =
-    settings.git_sharing.repository_layout === "stik_root"
+    settings.git_sharing.repository_layout === "stix_root"
       ? notesDir
       : `${notesDir}/${settings.git_sharing.shared_folder || "Inbox"}`;
 
@@ -1876,11 +1734,11 @@ export default function SettingsContent({
 
   const addMapping = () => {
     const usedShortcuts = settings.shortcut_mappings.map((m) => m.shortcut);
-    let defaultShortcut = "Cmd+Shift+S";
+    let defaultShortcut = "Ctrl+Option+S";
 
     const letters = "ABCDEFGHIJKLNOQRTUVWXYZ".split("");
     for (const letter of letters) {
-      const shortcut = `Cmd+Shift+${letter}`;
+      const shortcut = `Ctrl+Option+${letter}`;
       if (
         !usedShortcuts.includes(shortcut) &&
         !systemShortcutValues.includes(shortcut)
@@ -1909,7 +1767,7 @@ export default function SettingsContent({
       .map((m) => m.shortcut);
   };
 
-  const updateGitSharing = (updates: Partial<StikSettings["git_sharing"]>) => {
+  const updateGitSharing = (updates: Partial<StixSettings["git_sharing"]>) => {
     onSettingsChange({
       ...settings,
       git_sharing: {
@@ -2134,70 +1992,6 @@ export default function SettingsContent({
 
       {activeTab === "folders" && (
         <div className="space-y-4">
-          {/* iCloud Drive sync */}
-          <label className="flex items-center justify-between gap-3 p-4 bg-line/30 rounded-xl border border-line/50">
-            <div>
-              <p className="text-[13px] text-ink font-medium">{t("settings.icloud.title")}</p>
-              <p className="mt-1 text-[12px] text-stone leading-relaxed">
-                {t("settings.icloud.describe")}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                const newICloud = {
-                  ...settings.icloud,
-                  enabled: !settings.icloud?.enabled,
-                };
-                onSettingsChange({ ...settings, icloud: newICloud });
-              }}
-              className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${
-                settings.icloud?.enabled ? "bg-coral" : "bg-line"
-              }`}
-              title={t("settings.icloud.toggle")}
-            >
-              <span
-                className={`absolute left-0.5 top-0.5 w-5 h-5 rounded-full bg-white transition-transform pointer-events-none ${
-                  settings.icloud?.enabled ? "translate-x-5" : "translate-x-0"
-                }`}
-              />
-            </button>
-          </label>
-
-          {settings.icloud?.enabled && (
-            <div className="p-3 bg-coral-light/40 border border-coral/20 rounded-xl">
-              <p className="text-[12px] text-stone leading-relaxed">
-                {t("settings.icloud.detail")}
-              </p>
-              {!settings.icloud?.migrated && (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      const result = await invoke<{
-                        files_copied: number;
-                        errors: string[];
-                      }>("icloud_migrate_notes");
-                      if (result.files_copied > 0) {
-                        onSettingsChange({
-                          ...settings,
-                          icloud: { ...settings.icloud, migrated: true },
-                        });
-                      }
-                    } catch (e) {
-                      console.error("Migration failed:", e);
-                    }
-                  }}
-                  className="mt-2 px-3 py-1.5 text-[12px] text-coral border border-coral/30 rounded-lg hover:bg-coral-light transition-colors"
-                >
-                  {t("settings.icloud.copyExisting")}
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Notes directory (hidden when iCloud is active) */}
-          {!settings.icloud?.enabled && (
             <div>
               <p className="text-[12px] text-stone mb-1.5">{t("settings.notesDirectory")}</p>
               <div className="flex items-center gap-2">
@@ -2241,7 +2035,7 @@ export default function SettingsContent({
               </div>
               {!settings.use_directory_as_root && (
                 <p className="mt-1.5 text-[12px] text-stone leading-relaxed">
-                  {t("settings.notesDirectory.stikFolderNote")}
+                  {t("settings.notesDirectory.stixFolderNote")}
                 </p>
               )}
               {settings.notes_directory && (
@@ -2263,7 +2057,6 @@ export default function SettingsContent({
                 </label>
               )}
             </div>
-          )}
 
           <div>
             <label className="flex items-center gap-2 cursor-pointer">
@@ -2303,13 +2096,12 @@ export default function SettingsContent({
             </p>
           </div>
 
-          {!settings.icloud?.enabled &&
-          settings.git_sharing.enabled &&
+          {settings.git_sharing.enabled &&
           gitSyncStatus?.repo_initialized ? (
             <div className="p-3 bg-coral-light/40 border border-coral/20 rounded-xl">
               <p className="text-[12px] text-stone leading-relaxed">
                 <span className="text-ink font-medium">
-                  {settings.git_sharing.repository_layout === "stik_root"
+                  {settings.git_sharing.repository_layout === "stix_root"
                     ? t("settings.notesDirectory.allFolders")
                     : settings.git_sharing.shared_folder || "Inbox"}
                 </span>{" "}
@@ -2325,13 +2117,13 @@ export default function SettingsContent({
                 )}
               </p>
             </div>
-          ) : !settings.icloud?.enabled ? (
+          ) : (
             <div className="p-3 bg-coral-light/40 border border-coral/20 rounded-xl">
               <p className="text-[12px] text-stone leading-relaxed">
                 {t("settings.syncTip", { dir: notesDir })}
               </p>
             </div>
-          ) : null}
+          )}
         </div>
       )}
 
@@ -2535,18 +2327,8 @@ export default function SettingsContent({
 
       {activeTab === "git" && (
         <div className="space-y-3">
-          {settings.icloud?.enabled && (
-            <div className="p-3 bg-coral-light/40 border border-coral/20 rounded-xl mb-2">
-              <p className="text-[12px] text-stone leading-relaxed">
-                {t("settings.git.disabledByICloud")}
-              </p>
-            </div>
-          )}
-
           {/* Enable toggle */}
-          <label
-            className={`flex items-center justify-between gap-3 ${settings.icloud?.enabled ? "opacity-50 pointer-events-none" : ""}`}
-          >
+          <label className="flex items-center justify-between gap-3">
             <span className="text-[13px] text-ink font-medium">
               {t("settings.git.enable")}
             </span>
@@ -2583,7 +2365,7 @@ export default function SettingsContent({
               type="text"
               value={settings.git_sharing.remote_url}
               onChange={(e) => updateGitSharing({ remote_url: e.target.value })}
-              placeholder="https://github.com/your-org/stik-notes.git"
+              placeholder="https://github.com/your-org/stix-notes.git"
               className="w-full px-3 py-2.5 bg-bg border border-line rounded-lg text-[13px] text-ink placeholder:text-stone/70 focus:outline-none focus:border-coral/50"
             />
           </div>
@@ -2702,13 +2484,13 @@ export default function SettingsContent({
                       label: t("settings.git.layoutSelected"),
                     },
                     {
-                      value: "stik_root",
+                      value: "stix_root",
                       label: t("settings.git.layoutWhole"),
                     },
                   ]}
                   onChange={(value) =>
                     updateGitSharing({
-                      repository_layout: value as "folder_root" | "stik_root",
+                      repository_layout: value as "folder_root" | "stix_root",
                     })
                   }
                 />
@@ -2971,8 +2753,8 @@ function DictationSettingsPanel({
   settings,
   onSettingsChange,
 }: {
-  settings: StikSettings;
-  onSettingsChange: (s: StikSettings) => void;
+  settings: StixSettings;
+  onSettingsChange: (s: StixSettings) => void;
 }) {
   const { t } = useTranslation();
   const [models, setModels] = useState<DictationModelInfo[]>([]);

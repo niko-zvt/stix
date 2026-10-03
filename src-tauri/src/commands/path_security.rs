@@ -93,7 +93,7 @@ mod tests {
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let path = std::env::temp_dir().join(format!("stik-path-{label}-{nonce}"));
+        let path = std::env::temp_dir().join(format!("stix-path-{label}-{nonce}"));
         fs::create_dir_all(&path).unwrap();
         path
     }

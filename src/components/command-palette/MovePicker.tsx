@@ -60,7 +60,7 @@ export default function MovePicker({
       onClose={onCancel}
       initialFocusRef={selectedRef}
       backdropClassName="fixed inset-0 z-[300] flex items-center justify-center bg-black/40 backdrop-blur-sm"
-      panelClassName="bg-bg rounded-xl border border-line shadow-stik w-[min(90vw,320px)] flex flex-col overflow-hidden max-h-[70vh]"
+      panelClassName="bg-bg rounded-xl border border-line shadow-stix w-[min(90vw,320px)] flex flex-col overflow-hidden max-h-[70vh]"
       titleClassName="px-4 pt-3 text-sm font-semibold text-ink"
       descriptionClassName="truncate border-b border-line px-4 pb-3 pt-1 text-[11px] text-stone"
     >

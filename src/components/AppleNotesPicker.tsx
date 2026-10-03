@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import type { AppleNoteEntry, StikSettings } from "@/types";
+import type { AppleNoteEntry, StixSettings } from "@/types";
 import { useTranslation } from "@/hooks/useTranslation";
 import { formatRelativeDate } from "@/utils/formatRelativeDate";
 
@@ -25,7 +25,7 @@ export default function AppleNotesPicker() {
       try {
         const [result, settings] = await Promise.all([
           invoke<AppleNoteEntry[]>("list_apple_notes"),
-          invoke<StikSettings>("get_settings"),
+          invoke<StixSettings>("get_settings"),
         ]);
         setNotes(result);
         setFilteredNotes(result);
@@ -65,7 +65,7 @@ export default function AppleNotesPicker() {
     setSelectedIndex(0);
   }, [query, notes]);
 
-  // Import selected note (convert to markdown + save as Stik note)
+  // Import selected note (convert to markdown + save as Stix note)
   const handleImport = useCallback(
     async (note: AppleNoteEntry) => {
       if (isImporting) return;

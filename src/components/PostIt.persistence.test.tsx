@@ -42,7 +42,6 @@ vi.mock("./SpeechButton", () => ({ default: ({ ref, onTranscription }: {
   return null;
 } }));
 vi.mock("./AiMenu", () => ({ default: () => null }));
-vi.mock("./SyncIndicator", () => ({ default: () => null }));
 
 const path = "/vault/Inbox/secret.md";
 let locked = true;
@@ -63,7 +62,7 @@ beforeEach(() => {
   quit.save = undefined;
   native.handlers.clear();
   document.body.inert = false;
-  (window as unknown as { __stikDictationHoldOpen?: boolean }).__stikDictationHoldOpen = false;
+  (window as unknown as { __stixDictationHoldOpen?: boolean }).__stixDictationHoldOpen = false;
   locked = true;
   saveError = false;
   files = new Map([[path, "Private note"]]);
@@ -208,7 +207,7 @@ describe("viewing note persistence", () => {
 
   it("routes an edited locked note through authenticated encrypted storage", async () => {
     await openViewingNote();
-    fireEvent.click(screen.getByTitle("Save and close (Esc)"));
+    fireEvent.click(screen.getByTitle("Save and close"));
     await waitFor(() => expect(files.get(path)).toBe("Private edited note"));
     expect(invoke).toHaveBeenCalledWith("save_locked_note", { path, content: "Private edited note" });
     expect(invoke).not.toHaveBeenCalledWith("update_note", expect.anything());
@@ -217,7 +216,7 @@ describe("viewing note persistence", () => {
   it("retains the live editor draft when authentication has expired", async () => {
     saveError = true;
     await openViewingNote();
-    fireEvent.click(screen.getByTitle("Save and close (Esc)"));
+    fireEvent.click(screen.getByTitle("Save and close"));
     expect(await screen.findByRole("status")).toHaveTextContent("Not authenticated");
     expect(text()).toBe("Private edited note");
     expect(files.get(path)).toBe("Private note");
@@ -236,7 +235,7 @@ describe("viewing note persistence", () => {
   it("continues saving ordinary viewing notes through update_note", async () => {
     locked = false;
     await openViewingNote();
-    fireEvent.click(screen.getByTitle("Save and close (Esc)"));
+    fireEvent.click(screen.getByTitle("Save and close"));
     await waitFor(() => expect(files.get(path)).toBe("Private edited note"));
     expect(invoke).not.toHaveBeenCalledWith("save_locked_note", expect.anything());
   });
@@ -244,7 +243,7 @@ describe("viewing note persistence", () => {
   it.each([false, true])("persists a cleared viewing note, locked=%s", async (isLocked) => {
     locked = isLocked;
     await openViewingNote("");
-    fireEvent.click(screen.getByTitle("Save and close (Esc)"));
+    fireEvent.click(screen.getByTitle("Save and close"));
     await waitFor(() => expect(files.get(path)).toBe(""));
     if (!locked) expect(invoke).toHaveBeenCalledWith("update_note", { path, content: "", preserveEmpty: true });
     else expect(invoke).not.toHaveBeenCalledWith("update_note", expect.anything());
@@ -396,7 +395,7 @@ describe("capture ownership changes", () => {
 
   it("does not hide a transferred draft when an earlier save's close timer fires", async () => {
     const { onClose } = await openCapture();
-    fireEvent.click(screen.getByTitle("Save and close (Esc)"));
+    fireEvent.click(screen.getByTitle("Save and close"));
     await waitFor(() => expect(text()).toBe(""));
     await act(async () => { await transfer(); });
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 650)); });
@@ -473,6 +472,16 @@ describe("capture ownership changes", () => {
     await requestQuit();
     expect(onSave).toHaveBeenCalledWith("Final input during pin", "Inbox");
   });
+
+  it("pins a capture that has no text yet", async () => {
+    render(<PostIt folder="Inbox" onSave={vi.fn()} onClose={vi.fn()} onFolderChange={vi.fn()} />);
+    await screen.findByRole("textbox");
+    fireEvent.click(screen.getByRole("button", { name: "Pin to screen" }));
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("pin_capture_note", {
+      content: "",
+      folder: "Inbox",
+    }));
+  });
 });
 
 describe("PostIt app quit", () => {
@@ -523,11 +532,11 @@ describe("PostIt app quit", () => {
 
   it("vetoes quit during dictation so a later final transcript is not lost", async () => {
     const { onSave } = await openCapture();
-    (window as unknown as { __stikDictationHoldOpen?: boolean }).__stikDictationHoldOpen = true;
+    (window as unknown as { __stixDictationHoldOpen?: boolean }).__stixDictationHoldOpen = true;
     await expect(requestQuit()).rejects.toThrow("Finish dictation or close its setup before quitting.");
     expect(onSave).not.toHaveBeenCalled();
     expect(text()).toBe("Fresh capture draft");
-    (window as unknown as { __stikDictationHoldOpen?: boolean }).__stikDictationHoldOpen = false;
+    (window as unknown as { __stixDictationHoldOpen?: boolean }).__stixDictationHoldOpen = false;
     await requestQuit();
     expect(onSave).toHaveBeenCalledTimes(1);
   });
@@ -569,7 +578,7 @@ describe("PostIt app quit", () => {
     const blocked = deferred();
     const onSave = vi.fn(async () => { await blocked.promise; return "capture.md"; });
     await openCapture(onSave);
-    fireEvent.click(screen.getByTitle("Save and close (Esc)"));
+    fireEvent.click(screen.getByTitle("Save and close"));
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
     let completed = false;
     let pending!: Promise<void>;
@@ -630,5 +639,26 @@ describe("PostIt app quit", () => {
     expect(files.get(path)).toBe("Final dictation text");
     expect(text()).toBe("Final dictation text");
     expect(updates).toBe(2);
+  });
+});
+
+describe("sticker save and delete", () => {
+  it("discards a capture draft instead of saving it", async () => {
+    const { onSave, onClose } = await openCapture();
+    fireEvent.click(screen.getByRole("button", { name: "Delete and close" }));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(onSave).not.toHaveBeenCalled();
+    expect(invoke).not.toHaveBeenCalledWith("save_note", expect.anything());
+    expect(invoke).not.toHaveBeenCalledWith("delete_note", expect.anything());
+  });
+
+  it("trashes a viewing note and closes its window", async () => {
+    locked = false;
+    await openViewingNote();
+    fireEvent.click(screen.getByRole("button", { name: "Delete and close" }));
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("delete_note", { path }));
+    expect(invoke).toHaveBeenCalledWith("close_sticked_window", { id: "view-secret" });
+    expect(invoke).not.toHaveBeenCalledWith("update_note", expect.anything());
+    expect(invoke).not.toHaveBeenCalledWith("save_locked_note", expect.anything());
   });
 });

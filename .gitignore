@@ -25,6 +25,9 @@ npm-debug.log*
 # Env
 .env*
 
+# Updater signing key. The public half lives in tauri.conf.json.
+.updater/
+
 # Internal strategy docs (not public)
 .internal/
 

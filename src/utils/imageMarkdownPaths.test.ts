@@ -4,21 +4,21 @@ import { resolveImagePaths, unresolveImagePaths } from "./imageMarkdownPaths";
 describe("imageMarkdownPaths", () => {
   it("converts legacy asset://localhost links to relative .assets paths", () => {
     const input =
-      "![shot](asset://localhost/Users/massi/Documents/Stik/Inbox/.assets/screen%20one.png)";
+      "![shot](asset://localhost/Users/massi/Documents/Stix/Inbox/.assets/screen%20one.png)";
 
     expect(unresolveImagePaths(input)).toBe("![shot](.assets/screen one.png)");
   });
 
   it("converts asset.localhost links to relative .assets paths", () => {
     const input =
-      "![shot](https://asset.localhost/Users/massi/Documents/Stik/Inbox/.assets/screen-two.png)";
+      "![shot](https://asset.localhost/Users/massi/Documents/Stix/Inbox/.assets/screen-two.png)";
 
     expect(unresolveImagePaths(input)).toBe("![shot](.assets/screen-two.png)");
   });
 
   it("converts file:// links that point into .assets to relative .assets paths", () => {
     const input =
-      "![shot](file:///Users/massi/Documents/Stik/Inbox/.assets/screen-three.png)";
+      "![shot](file:///Users/massi/Documents/Stix/Inbox/.assets/screen-three.png)";
 
     expect(unresolveImagePaths(input)).toBe("![shot](.assets/screen-three.png)");
   });
@@ -33,18 +33,18 @@ describe("imageMarkdownPaths", () => {
     const markdown = "![shot](.assets/pasted.png)";
     const toFileSrc = (absPath: string) => `file://${absPath}`;
 
-    expect(resolveImagePaths(markdown, "/tmp/Stik/Inbox", toFileSrc)).toBe(
-      "![shot](file:///tmp/Stik/Inbox/.assets/pasted.png)"
+    expect(resolveImagePaths(markdown, "/tmp/Stix/Inbox", toFileSrc)).toBe(
+      "![shot](file:///tmp/Stix/Inbox/.assets/pasted.png)"
     );
   });
 
   it("normalizes legacy absolute asset links before resolving for display", () => {
     const markdown =
-      "![shot](asset://localhost/Users/massi/Documents/Stik/Inbox/.assets/pasted.png)";
+      "![shot](asset://localhost/Users/massi/Documents/Stix/Inbox/.assets/pasted.png)";
     const toFileSrc = (absPath: string) => `file://${absPath}`;
 
-    expect(resolveImagePaths(markdown, "/tmp/Stik/Inbox", toFileSrc)).toBe(
-      "![shot](file:///tmp/Stik/Inbox/.assets/pasted.png)"
+    expect(resolveImagePaths(markdown, "/tmp/Stix/Inbox", toFileSrc)).toBe(
+      "![shot](file:///tmp/Stix/Inbox/.assets/pasted.png)"
     );
   });
 });

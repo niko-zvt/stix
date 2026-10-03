@@ -9,7 +9,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 use tauri::Manager;
 
-use super::folders::{get_stik_folder, validate_name};
+use super::folders::{get_stix_folder, validate_name};
 use super::index::NoteIndex;
 use super::settings::{self, GitSharingSettings};
 
@@ -107,7 +107,7 @@ pub fn start_background_worker(app: tauri::AppHandle) {
     }
 
     if let Err(error) = thread::Builder::new()
-        .name("stik-git-sync".to_string())
+        .name("stix-git-sync".to_string())
         .spawn(move || background_worker_loop(app, receiver))
     {
         update_runtime_status(|state| {
@@ -186,18 +186,13 @@ fn is_folder_linked_for_sync(folder: &str) -> bool {
         Err(_) => return false,
     };
 
-    // iCloud and Git are mutually exclusive (v1 simplicity)
-    if settings.icloud.enabled {
-        return false;
-    }
-
     let config = settings.git_sharing;
     if !config.enabled || config.remote_url.trim().is_empty() {
         return false;
     }
 
     match normalized_repository_layout(&config.repository_layout) {
-        "stik_root" => true,
+        "stix_root" => true,
         _ => config.shared_folder.trim().eq(folder.trim()),
     }
 }
@@ -384,33 +379,33 @@ fn validate_git_config_fields(config: &GitSharingSettings) -> Result<(), String>
 }
 
 fn linked_folder_path(config: &GitSharingSettings) -> Result<PathBuf, String> {
-    let stik_folder = get_stik_folder()?;
-    linked_folder_path_with_mode(config, &stik_folder, true)
+    let stix_folder = get_stix_folder()?;
+    linked_folder_path_with_mode(config, &stix_folder, true)
 }
 
 fn linked_folder_path_for_status(config: &GitSharingSettings) -> Result<PathBuf, String> {
-    let stik_folder = get_stik_folder()?;
-    linked_folder_path_with_mode(config, &stik_folder, false)
+    let stix_folder = get_stix_folder()?;
+    linked_folder_path_with_mode(config, &stix_folder, false)
 }
 
 fn linked_folder_path_with_mode(
     config: &GitSharingSettings,
-    stik_folder: &Path,
+    stix_folder: &Path,
     create_if_missing: bool,
 ) -> Result<PathBuf, String> {
     match normalized_repository_layout(&config.repository_layout) {
-        "stik_root" => Ok(stik_folder.to_path_buf()),
-        _ => resolve_folder_path(stik_folder, config.shared_folder.trim(), create_if_missing),
+        "stix_root" => Ok(stix_folder.to_path_buf()),
+        _ => resolve_folder_path(stix_folder, config.shared_folder.trim(), create_if_missing),
     }
 }
 
 fn resolve_folder_path(
-    stik_folder: &Path,
+    stix_folder: &Path,
     folder: &str,
     create_if_missing: bool,
 ) -> Result<PathBuf, String> {
     validate_name(folder)?;
-    let folder_path = stik_folder.join(folder);
+    let folder_path = stix_folder.join(folder);
     if create_if_missing {
         fs::create_dir_all(&folder_path).map_err(|e| e.to_string())?;
     }
@@ -469,14 +464,14 @@ fn ensure_local_identity(repo_path: &Path) -> Result<(), String> {
     if git_config_value(repo_path, "user.name")?.is_none() {
         run_git_success(
             repo_path,
-            &["config", "user.name", "Stik"],
+            &["config", "user.name", "Stix"],
             "set git user.name",
         )?;
     }
     if git_config_value(repo_path, "user.email")?.is_none() {
         run_git_success(
             repo_path,
-            &["config", "user.email", "stik@local.invalid"],
+            &["config", "user.email", "stix@local.invalid"],
             "set git user.email",
         )?;
     }
@@ -515,7 +510,7 @@ fn commit_local_changes(repo_path: &Path, trigger: SyncTrigger) -> Result<(), St
     }
 
     let commit_message = format!(
-        "stik: sync {} notes ({})",
+        "stix: sync {} notes ({})",
         Local::now().format("%Y-%m-%d %H:%M:%S"),
         trigger.commit_label()
     );
@@ -643,7 +638,7 @@ fn resolve_conflicts_by_duplication(
         &[
             "commit",
             "-m",
-            "stik: resolve conflicts by keeping both versions",
+            "stix: resolve conflicts by keeping both versions",
         ],
     )?;
     if merge_commit_output.status_code == Some(0) {
@@ -797,8 +792,8 @@ fn normalized_branch(branch: &str) -> String {
 }
 
 fn normalized_repository_layout(layout: &str) -> &'static str {
-    if layout.trim().eq_ignore_ascii_case("stik_root") {
-        "stik_root"
+    if layout.trim().eq_ignore_ascii_case("stix_root") {
+        "stix_root"
     } else {
         "folder_root"
     }
@@ -893,7 +888,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .expect("clock should be monotonic")
             .as_nanos();
-        std::env::temp_dir().join(format!("stik-git-share-{label}-{nanos}"))
+        std::env::temp_dir().join(format!("stix-git-share-{label}-{nanos}"))
     }
 
     fn folder_root_config(folder: &str) -> GitSharingSettings {
@@ -931,19 +926,19 @@ mod tests {
             " Inbox ".to_string(),
             " https://example.com/team.git ".to_string(),
             Some(" main ".to_string()),
-            Some(" stik_root ".to_string()),
+            Some(" stix_root ".to_string()),
         );
         assert_eq!(config.shared_folder, "Inbox");
         assert_eq!(config.remote_url, "https://example.com/team.git");
         assert_eq!(config.branch, "main");
-        assert_eq!(config.repository_layout, "stik_root");
+        assert_eq!(config.repository_layout, "stix_root");
         assert!(config.enabled);
     }
 
     #[test]
     fn normalizes_unknown_layout_to_folder_root() {
         assert_eq!(normalized_repository_layout("folder_root"), "folder_root");
-        assert_eq!(normalized_repository_layout("stik_root"), "stik_root");
+        assert_eq!(normalized_repository_layout("stix_root"), "stix_root");
         assert_eq!(
             normalized_repository_layout("something_else"),
             "folder_root"
@@ -952,14 +947,14 @@ mod tests {
 
     #[test]
     fn converts_git_ssh_remote_to_browser_url() {
-        let url = remote_to_browser_url("git@github.com:0xMassi/stik_notes.git").unwrap();
-        assert_eq!(url, "https://github.com/0xMassi/stik_notes");
+        let url = remote_to_browser_url("git@github.com:0xMassi/stix_notes.git").unwrap();
+        assert_eq!(url, "https://github.com/0xMassi/stix_notes");
     }
 
     #[test]
     fn converts_https_remote_to_browser_url() {
-        let url = remote_to_browser_url("https://github.com/0xMassi/stik_notes.git").unwrap();
-        assert_eq!(url, "https://github.com/0xMassi/stik_notes");
+        let url = remote_to_browser_url("https://github.com/0xMassi/stix_notes.git").unwrap();
+        assert_eq!(url, "https://github.com/0xMassi/stix_notes");
     }
 
     #[test]

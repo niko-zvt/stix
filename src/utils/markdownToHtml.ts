@@ -2,7 +2,7 @@
  * Markdown-to-HTML converter for clipboard "Copy as Rich Text".
  *
  * Uses `marked` for proper CommonMark + GFM rendering (nested lists, tables,
- * task lists, strikethrough, autolinks) with custom extensions for Stik-specific
+ * task lists, strikethrough, autolinks) with custom extensions for Stix-specific
  * syntax: ==highlight== and [[wiki-links]].
  */
 

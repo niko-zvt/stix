@@ -7,13 +7,13 @@ import { join, resolve } from "node:path";
 
 const [appPath, architecture] = process.argv.slice(2);
 assert(appPath && ["arm64", "x86_64"].includes(architecture),
-  "Usage: node scripts/check-macos-artifact.mjs /path/to/Stik.app arm64|x86_64");
+  "Usage: node scripts/check-macos-artifact.mjs /path/to/Stix.app arm64|x86_64");
 const app = resolve(appPath);
 const run = (command, args) => execFileSync(command, args, {
   encoding: "utf8", timeout: 30_000,
 }).trim();
 
-for (const name of ["stik", "darwinkit"]) {
+for (const name of ["stix", "darwinkit"]) {
   const binary = join(app, "Contents", "MacOS", name);
   accessSync(binary, constants.X_OK);
   assert.equal(run("lipo", ["-archs", binary]), architecture,

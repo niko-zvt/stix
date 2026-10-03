@@ -1,6 +1,6 @@
 /// Internationalization — locale registry, active-locale store and the
 /// `translate` primitive. Deliberately dependency-free: the whole runtime is
-/// a lookup plus `{placeholder}` substitution, which is all Stik needs.
+/// a lookup plus `{placeholder}` substitution, which is all Stix needs.
 ///
 /// English (`en`) is the source of truth. Every other locale is typed as
 /// `Record<TranslationKey, string>`, so a missing or misspelled key is a
@@ -67,7 +67,7 @@ export function translate(
 }
 
 // ── Active locale store ──────────────────────────────────────────────
-// Module-level rather than React context: Stik renders several independent
+// Module-level rather than React context: Stix renders several independent
 // window roots from one bundle, and a plain store keeps them in sync without
 // threading a provider through every entry point.
 

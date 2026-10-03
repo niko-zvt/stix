@@ -16,7 +16,7 @@ use super::storage;
 
 // ── Constants ────────────────────────────────────────────────────
 
-const LOCKED_HEADER: &str = "---stik-locked---";
+const LOCKED_HEADER: &str = "---stix-locked---";
 const B64: base64::engine::GeneralPurpose = base64::engine::general_purpose::STANDARD;
 
 // ── Session State ────────────────────────────────────────────────
@@ -106,7 +106,7 @@ fn decrypt(locked_content: &str, key: &[u8; 32]) -> Result<String, String> {
 
 // ── Key Storage ─────────────────────────────────────────────────
 
-const KEYCHAIN_SERVICE: &str = "com.0xmassi.stik";
+const KEYCHAIN_SERVICE: &str = "com.stix.app";
 const KEYCHAIN_ACCOUNT: &str = "note-encryption-key";
 
 trait KeyStore {
@@ -217,7 +217,7 @@ fn authorize_managed_note_path(root: &Path, path: &Path) -> Result<PathBuf, Stri
 }
 
 fn managed_note_path(path: &str) -> Result<String, String> {
-    let root = super::folders::get_stik_folder()?;
+    let root = super::folders::get_stix_folder()?;
     let authorized = authorize_managed_note_path(&root, Path::new(path))?;
     Ok(authorized.to_string_lossy().to_string())
 }
@@ -277,7 +277,7 @@ pub fn authenticate() -> Result<bool, String> {
         return Ok(true);
     }
 
-    let success = trigger_auth("Stik wants to access locked notes")?;
+    let success = trigger_auth("Stix wants to access locked notes")?;
     if success {
         unlock_session();
     }
@@ -319,7 +319,7 @@ pub fn lock_note(
     index.add(&path, &folder);
 
     // The embedding is derived from plaintext, so keeping it would leave a
-    // readable shadow of a locked note in ~/.stik/embeddings.json. build_embeddings
+    // readable shadow of a locked note in ~/.stix/embeddings.json. build_embeddings
     // already skips locked notes; this closes the same hole on the way in.
     embeddings.remove_entry(&path);
     let _ = embeddings.save();
@@ -394,10 +394,10 @@ pub fn save_locked_note(path: String, content: String) -> Result<(), String> {
 }
 
 /// Check managed-note lock status. External Finder documents are not managed
-/// by Stik locking; report false without reading their contents.
+/// by Stix locking; report false without reading their contents.
 #[tauri::command]
 pub fn is_note_locked(path: String) -> Result<bool, String> {
-    let root = super::folders::get_stik_folder()?;
+    let root = super::folders::get_stix_folder()?;
     let requested = Path::new(&path);
     if !requested.is_absolute() {
         return Err("Note path must be absolute".into());
@@ -468,7 +468,7 @@ mod tests {
             .unwrap()
             .as_nanos();
         std::env::temp_dir()
-            .join(format!("stik-key-{label}-{nonce}"))
+            .join(format!("stix-key-{label}-{nonce}"))
             .join("note-key")
     }
 
@@ -551,7 +551,7 @@ mod tests {
     fn decrypts_legacy_locked_note_fixture() {
         // Fixed AES-256-GCM vector (key [42; 32], nonce 0..11), verified with
         // aes-gcm 0.10 before upgrading. Never regenerate with the tested version.
-        let locked = "---stik-locked---\nnonce: AAECAwQFBgcICQoL\nbw0YLftCQEe+XWmft7aPwEyMUSa56ybEuu8mgqNZgtskqSer8cPxACTw/gitno5vzg1WuPJnLPzFMvIy2g==";
+        let locked = "---stix-locked---\nnonce: AAECAwQFBgcICQoL\nbw0YLftCQEe+XWmft7aPwEyMUSa56ybEuu8mgqNZgtskqSer8cPxACTw/gitno5vzg1WuPJnLPzFMvIy2g==";
         assert_eq!(
             decrypt(locked, &[42; 32]).unwrap(),
             "# Legacy note\n\nCafé 🔒 — stays readable."
@@ -614,7 +614,7 @@ mod tests {
 
     #[test]
     fn test_is_locked() {
-        assert!(is_locked_content("---stik-locked---\nnonce: abc\ndata"));
+        assert!(is_locked_content("---stix-locked---\nnonce: abc\ndata"));
     }
 
     #[test]

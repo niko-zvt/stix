@@ -1,9 +1,9 @@
 import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 
-const outputDirectory = process.env.STIK_BUNDLE_DIR || "dist";
+const outputDirectory = process.env.STIX_BUNDLE_DIR || "dist";
 const maximumEntryBytes = Number(
-  process.env.STIK_ENTRY_BUDGET_BYTES || "750000",
+  process.env.STIX_ENTRY_BUDGET_BYTES || "750000",
 );
 const manifestPath = join(outputDirectory, ".vite", "manifest.json");
 const manifest = JSON.parse(await readFile(manifestPath, "utf8"));

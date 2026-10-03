@@ -1,5 +1,5 @@
 /**
- * CodeMirror 6 editor for Stik — raw markdown editing with syntax highlighting.
+ * CodeMirror 6 editor for Stix — raw markdown editing with syntax highlighting.
  */
 
 import {
@@ -9,13 +9,13 @@ import {
   useRef,
   useCallback,
 } from "react";
-import { Compartment, EditorState } from "@codemirror/state";
+import { Compartment, EditorState, Prec } from "@codemirror/state";
 import {
   EditorView,
   drawSelection,
   keymap,
 } from "@codemirror/view";
-import { defaultKeymap, history, historyKeymap, indentWithTab, insertNewline } from "@codemirror/commands";
+import { defaultKeymap, history, historyKeymap, indentWithTab, insertNewline, redo, selectAll, undo } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { syntaxTree, type LanguageDescription } from "@codemirror/language";
 import { autocompletion, closeCompletion, completionStatus } from "@codemirror/autocomplete";
@@ -23,13 +23,15 @@ import { search, searchKeymap } from "@codemirror/search";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-shell";
-import { stikEditorTheme, stikHighlightStyle } from "@/extensions/cm-theme";
+import { stixEditorTheme, stixHighlightStyle } from "@/extensions/cm-theme";
 import {
   toggleInlineFormat,
   insertLink,
   detectFormatState,
   type FormatState,
 } from "@/extensions/cm-formatting";
+import { dragSelect } from "@/extensions/cm-mouse-select";
+import { mathPlugin } from "@/extensions/cm-math";
 import {
   wikiLinkDecorations,
   wikiLinkClickHandler,
@@ -561,7 +563,7 @@ const Editor = forwardRef<EditorRef, EditorProps>(
             )
           ) {
             firstInputRecorded = true;
-            globalThis.performance?.mark?.("stik:first-editor-input");
+            globalThis.performance?.mark?.("stix:first-editor-input");
           }
           const markdownText = update.state.doc.toString();
           onChangeRef.current(markdownText);
@@ -571,16 +573,57 @@ const Editor = forwardRef<EditorRef, EditorProps>(
 
       // Build extensions
       const extensions = [
+        dragSelect,
+        mathPlugin,
         history(),
         formatKeybindings,
         keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, indentWithTab]),
+        Prec.highest(keymap.of([
+          { key: "Ctrl-a", run: selectAll },
+          { key: "Ctrl-z", run: undo },
+          { key: "Ctrl-y", run: redo },
+          {
+            key: "Ctrl-c",
+            run: (view) => {
+              const text = view.state.sliceDoc(
+                view.state.selection.main.from,
+                view.state.selection.main.to,
+              );
+              if (!text) return true;
+              void invoke("write_clipboard_text", { text });
+              return true;
+            },
+          },
+          {
+            key: "Ctrl-x",
+            run: (view) => {
+              const { from, to } = view.state.selection.main;
+              if (from === to) return true;
+              const text = view.state.sliceDoc(from, to);
+              void invoke("write_clipboard_text", { text }).then(() => {
+                view.dispatch({ changes: { from, to, insert: "" } });
+              });
+              return true;
+            },
+          },
+          {
+            key: "Ctrl-v",
+            run: (view) => {
+              void invoke<string>("read_clipboard_text")
+                .then((text) => {
+                  if (!text) return;
+                  view.dispatch(view.state.replaceSelection(text));
+                })
+                .catch(() => {});
+              return true;
+            },
+          },
+        ])),
         markdownCompartment.of(createMarkdownSupport([])),
-        stikEditorTheme,
-        stikHighlightStyle,
-        // Required for Vim visual mode highlight:
-        // @replit/codemirror-vim makes native ::selection transparent.
-        // drawSelection renders .cm-selectionBackground instead.
-        drawSelection(),
+        stixEditorTheme,
+        stixHighlightStyle,
+        // Vim paints over the native highlight, so it needs CodeMirror's
+        // own selection layer. Without Vim the browser highlight must stay.
         placeholderCompartment.of(
           accessibleEditor(placeholderText, accessibleName),
         ),
@@ -604,11 +647,12 @@ const Editor = forwardRef<EditorRef, EditorProps>(
         bidiSupport(textDirection),
         EditorView.lineWrapping,
         // CSS class for the content element
-        EditorView.contentAttributes.of({ class: "stik-editor" }),
+        EditorView.contentAttributes.of({ class: "stix-editor" }),
       ];
 
       // Add vim mode if enabled
       if (vimEnabled) {
+        extensions.push(drawSelection());
         extensions.push(vimCompartment.of(createVimExtension()));
       } else {
         extensions.push(vimCompartment.of([]));
@@ -625,7 +669,7 @@ const Editor = forwardRef<EditorRef, EditorProps>(
       });
 
       viewRef.current = view;
-      globalThis.performance?.mark?.("stik:editor-ready");
+      globalThis.performance?.mark?.("stix:editor-ready");
       loadCodeLanguagesIfNeeded(view.state.doc.toString(), view);
 
       // Setup vim mode listener after view is created

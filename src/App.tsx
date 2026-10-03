@@ -6,12 +6,13 @@ import {
   useCallback,
   useRef,
 } from "react";
-import { matchesEitherPrimary } from "@/utils/matchShortcut";
+import { matchesShortcut } from "@/utils/matchShortcut";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import type { StickedNote, StikSettings } from "@/types";
+import type { StickedNote, StixSettings } from "@/types";
 import { isMarkdownEffectivelyEmpty } from "@/utils/normalizeMarkdownForCopy";
+import type { NoteWindowGeometry } from "@/utils/noteGeometry";
 import { shouldHideCaptureOnBlur } from "@/utils/blurAutoHide";
 import { resolveCaptureFolder } from "@/utils/folderSelection";
 import { useLanguageSync, useTranslation } from "@/hooks/useTranslation";
@@ -20,12 +21,11 @@ import { resolveWindowInfo } from "@/utils/windowRouting";
 const SettingsModal = lazy(() => import("./components/SettingsModal"));
 const PostIt = lazy(() => import("./components/PostIt"));
 const CommandPalette = lazy(() => import("./components/CommandPalette"));
-const AnalyticsNotice = lazy(() => import("./components/AnalyticsNotice"));
 const AppleNotesPicker = lazy(
   () => import("./components/AppleNotesPicker"),
 );
 const EditorWindow = lazy(() => import("./components/EditorWindow"));
-const PENDING_UPDATE_KEY = "stik_pending_update_version";
+const PENDING_UPDATE_KEY = "stix_pending_update_version";
 
 function WindowLoading() {
   return <div className="w-full h-full bg-bg" aria-busy="true" />;
@@ -41,14 +41,13 @@ export default function App() {
   const blurIgnoreUntilRef = useRef(0);
   const pendingBlurHideRef = useRef<number | null>(null);
   const skipNextBlurHideRef = useRef(false);
-  const [showAnalyticsNotice, setShowAnalyticsNotice] = useState(false);
   const windowInfo = resolveWindowInfo(window.location.search);
 
   const resolveFolder = useCallback(
-    async (requestedFolder?: string, settingsFromEvent?: StikSettings) => {
+    async (requestedFolder?: string, settingsFromEvent?: StixSettings) => {
       const folders = await invoke<string[]>("list_folders");
       const settings =
-        settingsFromEvent ?? (await invoke<StikSettings>("get_settings"));
+        settingsFromEvent ?? (await invoke<StixSettings>("get_settings"));
       return resolveCaptureFolder({
         requestedFolder: requestedFolder?.trim(),
         defaultFolder: settings.default_folder?.trim(),
@@ -136,6 +135,7 @@ export default function App() {
     if (windowInfo.type !== "postit") return;
 
     const handleFocus = () => {
+      (window as unknown as { __stixSunk?: boolean }).__stixSunk = false;
       // Use Math.max so a focus event arriving after shortcut-triggered
       // never shortens the 500ms grace period down to 300ms.
       blurIgnoreUntilRef.current = Math.max(
@@ -154,12 +154,17 @@ export default function App() {
         skipNextBlurHideRef.current = false;
         return;
       }
+      // Escape sinks the capture window on purpose. The blur that follows
+      // must not hide it, even when the note is still empty.
+      if ((window as unknown as { __stixSunk?: boolean }).__stixSunk) {
+        return;
+      }
       // Dictation holds the window open: when the mic is active or
       // the setup modal is mounted, a blur is expected (TCC prompt,
       // download dialog, etc.) and must never hide the postit.
       if (
-        (window as unknown as { __stikDictationHoldOpen?: boolean })
-          .__stikDictationHoldOpen
+        (window as unknown as { __stixDictationHoldOpen?: boolean })
+          .__stixDictationHoldOpen
       ) {
         return;
       }
@@ -172,8 +177,8 @@ export default function App() {
         const nowMs = Date.now();
         if (nowMs < blurIgnoreUntilRef.current) return;
         if (
-          (window as unknown as { __stikDictationHoldOpen?: boolean })
-            .__stikDictationHoldOpen
+          (window as unknown as { __stixDictationHoldOpen?: boolean })
+            .__stixDictationHoldOpen
         ) {
           return;
         }
@@ -209,14 +214,14 @@ export default function App() {
     if (windowInfo.type !== "postit") return;
 
     const unlisten = listen<string>("shortcut-triggered", (event) => {
-      globalThis.performance?.mark?.("stik:capture-shortcut-received");
+      globalThis.performance?.mark?.("stix:capture-shortcut-received");
       requestAnimationFrame(() => {
-        globalThis.performance?.mark?.("stik:capture-visible");
+        globalThis.performance?.mark?.("stix:capture-visible");
         try {
           globalThis.performance?.measure?.(
-            "stik:shortcut-to-visible",
-            "stik:capture-shortcut-received",
-            "stik:capture-visible",
+            "stix:shortcut-to-visible",
+            "stix:capture-shortcut-received",
+            "stix:capture-visible",
           );
         } catch {
           // Performance marks are diagnostic only and must never affect capture.
@@ -238,7 +243,7 @@ export default function App() {
   useEffect(() => {
     if (windowInfo.type !== "postit") return;
 
-    const unlisten = listen<StikSettings>("settings-changed", (event) => {
+    const unlisten = listen<StixSettings>("settings-changed", (event) => {
       void resolveFolder(undefined, event.payload)
         .then(setCurrentFolder)
         .catch(() => {});
@@ -249,12 +254,12 @@ export default function App() {
     };
   }, [windowInfo.type, resolveFolder]);
 
-  // Listen for settings shortcut (Cmd+Shift+,)
+  // In-window copies of the global Ctrl+Option shortcuts.
   useEffect(() => {
     if (windowInfo.type !== "postit") return;
 
     const handleKeyDown = async (e: KeyboardEvent) => {
-      if (matchesEitherPrimary("Cmd+Shift+Comma", e)) {
+      if (matchesShortcut("Ctrl+Option+Comma", e)) {
         e.preventDefault();
         try {
           await invoke("open_settings");
@@ -262,9 +267,8 @@ export default function App() {
           console.error("Failed to open settings:", error);
         }
       }
-      // Cmd/Ctrl+K opens the command menu. Stik has always had it on
-      // Cmd+Shift+P; K is what most people reach for first, so accept both.
-      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === "k") {
+      // Cmd/Ctrl+K still opens the command menu from inside the capture window.
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "k") {
         e.preventDefault();
         try {
           await invoke("open_command_palette");
@@ -273,7 +277,7 @@ export default function App() {
         }
       }
 
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "e" || e.key === "E")) {
+      if (matchesShortcut("Ctrl+Option+E", e)) {
         e.preventDefault();
         try {
           await invoke("open_editor");
@@ -291,13 +295,13 @@ export default function App() {
   useEffect(() => {
     if (windowInfo.type !== "postit") return;
     // Skip in dev: downloadAndInstall() extracts to a temp dir and spawns
-    // a second Stik process (the released build), causing version conflicts.
+    // a second Stix process (the released build), causing version conflicts.
     if (window.location.port) return;
 
     const runAutoUpdate = async () => {
       try {
         const { check } = await import("@tauri-apps/plugin-updater");
-        const settings = await invoke<StikSettings>("get_settings");
+        const settings = await invoke<StixSettings>("get_settings");
         if (settings.auto_update_enabled === false) {
           console.debug("Auto-update skipped: disabled in settings");
           return;
@@ -318,7 +322,7 @@ export default function App() {
         }
 
         console.log(
-          `Stik update available: v${update.currentVersion} → v${update.version}`,
+          `Stix update available: v${update.currentVersion} → v${update.version}`,
         );
         await update.downloadAndInstall();
         localStorage.setItem(PENDING_UPDATE_KEY, update.version);
@@ -333,36 +337,11 @@ export default function App() {
     void runAutoUpdate();
   }, [windowInfo.type]);
 
-  // One-time notices for existing users
-  useEffect(() => {
-    if (windowInfo.type !== "postit") return;
-
-    invoke<StikSettings>("get_settings")
-      .then((s) => {
-        if (!s.analytics_notice_dismissed) {
-          setShowAnalyticsNotice(true);
-        }
-      })
-      .catch(() => {});
-  }, [windowInfo.type]);
-
-  const handleAnalyticsChoice = useCallback(async (enabled: boolean) => {
-    try {
-      const settings = await invoke<StikSettings>("get_settings");
-      settings.analytics_enabled = enabled;
-      settings.analytics_consent_version = 1;
-      settings.analytics_notice_dismissed = true;
-      await invoke("save_settings", { settings });
-    } catch (error) {
-      console.error("Failed to dismiss analytics notice:", error);
-    }
-    setShowAnalyticsNotice(false);
-  }, []);
-
   const handleSave = useCallback(
     async (
       content: string,
       preferredFolder?: string,
+      geometry?: NoteWindowGeometry,
     ): Promise<string | undefined> => {
       if (isMarkdownEffectivelyEmpty(content)) return undefined;
 
@@ -377,6 +356,7 @@ export default function App() {
       const result = await invoke<{ path: string }>("save_note", {
         folder: resolvedFolder,
         content,
+        ...(geometry ? { geometry } : {}),
       });
       return result.path || undefined;
     },
@@ -492,22 +472,15 @@ export default function App() {
   }
 
   return (
-    <>
-      <Suspense fallback={<WindowLoading />}>
-        <PostIt
-          folder={currentFolder}
-          onSave={handleSave}
-          onClose={handleClose}
-          onFolderChange={handleFolderChange}
-          onOpenSettings={handleOpenSettings}
-          onContentChange={handleContentChange}
-        />
-      </Suspense>
-      {showAnalyticsNotice && (
-        <Suspense fallback={null}>
-          <AnalyticsNotice onChoice={handleAnalyticsChoice} />
-        </Suspense>
-      )}
-    </>
+    <Suspense fallback={<WindowLoading />}>
+      <PostIt
+        folder={currentFolder}
+        onSave={handleSave}
+        onClose={handleClose}
+        onFolderChange={handleFolderChange}
+        onOpenSettings={handleOpenSettings}
+        onContentChange={handleContentChange}
+      />
+    </Suspense>
   );
 }

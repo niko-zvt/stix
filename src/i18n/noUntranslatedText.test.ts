@@ -23,7 +23,7 @@ function walk(dir: string, out: string[] = []): string[] {
 /// Genuinely untranslatable: keyboard nomenclature, units, path fragments,
 /// folder examples, and the vim command reference.
 const ALLOWED = new Set([
-  "AI", "MB", "opt", "tab", "esc", "/command", "/Stik/",
+  "AI", "MB", "opt", "tab", "esc", "/command", "/Stix/",
   "Inbox/", "Work/", "Ideas/", 'git -C "', '" push',
   "-- NORMAL --", "-- VISUAL --", "-- VISUAL LINE --", "-- INSERT --", "·", "&middot;",
 ]);

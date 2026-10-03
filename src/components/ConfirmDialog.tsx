@@ -47,7 +47,7 @@ export default function ConfirmDialog({
       onClose={onCancel}
       initialFocusRef={cancelRef}
       backdropClassName="fixed inset-0 z-[300] flex items-center justify-center bg-black/40 backdrop-blur-sm"
-      panelClassName="bg-bg rounded-xl border border-line shadow-stik w-[min(90vw,320px)] flex flex-col items-center p-6"
+      panelClassName="bg-bg rounded-xl border border-line shadow-stix w-[min(90vw,320px)] flex flex-col items-center p-6"
       titleClassName="mb-1 flex flex-col items-center text-sm font-semibold text-ink"
       descriptionClassName="text-[12px] text-stone text-center mb-4 max-w-[280px]"
     >

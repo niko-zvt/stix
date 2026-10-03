@@ -13,7 +13,7 @@ import {
 
 /// In-window command menu, opened with Cmd/Ctrl+K.
 ///
-/// Stik's full palette is a separate Tauri window with search and folders;
+/// Stix's full palette is a separate Tauri window with search and folders;
 /// this is the lighter thing you reach for mid-sentence, when leaving the
 /// current window would cost the thought you were capturing.
 interface CommandAction {

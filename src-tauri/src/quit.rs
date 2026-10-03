@@ -96,7 +96,10 @@ fn state() -> MutexGuard<'static, QuitState> {
 }
 
 fn note_window(label: &str) -> bool {
-    label == "editor" || label == "postit" || label.starts_with("sticked-")
+    label == "editor"
+        || label == "postit"
+        || label.starts_with("sticked-")
+        || label.starts_with("capture-")
 }
 
 #[derive(Clone, serde::Serialize)]
@@ -262,7 +265,7 @@ mod native {
         let selector = sel!(applicationShouldTerminate:);
         if class.instance_method(selector).is_some() {
             return Err(
-                "Upstream now handles applicationShouldTerminate:; review Stik's quit integration"
+                "Upstream now handles applicationShouldTerminate:; review Stix's quit integration"
                     .into(),
             );
         }

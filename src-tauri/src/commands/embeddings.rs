@@ -1,7 +1,7 @@
 /// Embedding index — persists note embeddings to disk, provides cosine
 /// similarity search and per-folder centroids for folder suggestion.
 ///
-/// Storage: `~/.stik/embeddings.json` (~4KB per note, 512 floats each).
+/// Storage: `~/.stix/embeddings.json` (~4KB per note, 512 floats each).
 /// Uses content hashing to skip re-embedding unchanged notes.
 use serde::{Deserialize, Serialize};
 use std::collections::hash_map::DefaultHasher;
@@ -184,7 +184,7 @@ impl EmbeddingIndex {
     /// Compute average embedding vector per folder, filtered to a single
     /// language. Different languages produce incompatible vector spaces.
     pub fn folder_centroids(&self, language: &str) -> HashMap<String, Vec<f64>> {
-        let root = match super::folders::get_stik_folder() {
+        let root = match super::folders::get_stix_folder() {
             Ok(root) => root,
             Err(_) => return HashMap::new(),
         };

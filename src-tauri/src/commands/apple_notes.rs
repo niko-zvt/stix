@@ -48,8 +48,8 @@ fn open_readonly_database(path: &std::path::Path) -> Result<Connection, String> 
     let conn = Connection::open_with_flags(path, flags).map_err(|e| {
         let msg = e.to_string();
         if msg.contains("unable to open") || msg.contains("permission") || msg.contains("denied") {
-            "FULL_DISK_ACCESS_REQUIRED: Stik needs Full Disk Access to read Apple Notes. \
-             Go to System Settings → Privacy & Security → Full Disk Access, then add Stik."
+            "FULL_DISK_ACCESS_REQUIRED: Stix needs Full Disk Access to read Apple Notes. \
+             Go to System Settings → Privacy & Security → Full Disk Access, then add Stix."
                 .to_string()
         } else {
             format!("Failed to open Apple Notes database: {}", msg)
@@ -282,7 +282,7 @@ fn protobuf_to_markdown(note: &proto::Note) -> String {
 
                 match style_type {
                     0 if is_first_line => {
-                        // Title: first line, no prefix (Stik treats first line as title)
+                        // Title: first line, no prefix (Stix treats first line as title)
                         is_first_line = false;
                     }
                     0 => {
@@ -426,7 +426,7 @@ mod tests {
     fn readonly_database_lists_and_imports_supported_schemas() {
         for account_column in ["ZACCOUNT2", "ZACCOUNT3", "ZACCOUNT4", "ZACCOUNT7"] {
             let path = std::env::temp_dir()
-                .join(format!("stik-apple-notes-{}.sqlite", uuid::Uuid::new_v4()));
+                .join(format!("stix-apple-notes-{}.sqlite", uuid::Uuid::new_v4()));
             let fixture = Connection::open(&path).unwrap();
             fixture
                 .execute_batch(&format!(

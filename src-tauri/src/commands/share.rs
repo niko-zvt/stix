@@ -29,6 +29,26 @@ pub fn build_clipboard_payload(markdown: String) -> Result<ClipboardPayload, Str
 }
 
 #[tauri::command]
+pub fn read_clipboard_text() -> Result<String, String> {
+    let mut clipboard =
+        arboard::Clipboard::new().map_err(|e| format!("Clipboard unavailable: {e}"))?;
+    match clipboard.get_text() {
+        Ok(text) => Ok(text),
+        Err(arboard::Error::ContentNotAvailable) => Ok(String::new()),
+        Err(error) => Err(format!("Failed to read clipboard: {error}")),
+    }
+}
+
+#[tauri::command]
+pub fn write_clipboard_text(text: String) -> Result<(), String> {
+    let mut clipboard =
+        arboard::Clipboard::new().map_err(|e| format!("Clipboard unavailable: {e}"))?;
+    clipboard
+        .set_text(text)
+        .map_err(|e| format!("Failed to write clipboard: {e}"))
+}
+
+#[tauri::command]
 pub fn copy_rich_text_to_clipboard(html: String, plain_text: String) -> Result<(), String> {
     let mut clipboard =
         arboard::Clipboard::new().map_err(|e| format!("Clipboard unavailable: {e}"))?;
@@ -93,19 +113,6 @@ fn copy_png_bytes_to_clipboard(png_bytes: &[u8]) -> Result<(), String> {
             bytes: Cow::Owned(pixels),
         })
         .map_err(|e| format!("Failed to write image to clipboard: {e}"))
-}
-
-/// Read text from the system clipboard. Kept around for future use;
-/// the clip_capture shortcut no longer needs it because we read the
-/// selected text directly from the focused UI element via the
-/// Accessibility API instead of the pasteboard.
-#[allow(dead_code)]
-pub fn read_clipboard_text() -> Result<String, String> {
-    let mut clipboard =
-        arboard::Clipboard::new().map_err(|e| format!("Clipboard unavailable: {e}"))?;
-    clipboard
-        .get_text()
-        .map_err(|e| format!("No text on clipboard: {e}"))
 }
 
 fn markdown_to_html(markdown: &str) -> String {

@@ -20,8 +20,8 @@ pub struct StickedNotesStore {
 }
 
 fn get_sticked_notes_path() -> Result<PathBuf, String> {
-    let stik_config = super::paths::config_dir()?;
-    Ok(stik_config.join("sticked_notes.json"))
+    let stix_config = super::paths::config_dir()?;
+    Ok(stix_config.join("sticked_notes.json"))
 }
 
 fn load_sticked_notes() -> Result<StickedNotesStore, String> {
@@ -105,7 +105,11 @@ pub fn update_sticked_note(
 }
 
 #[tauri::command]
-pub fn close_sticked_note(id: String, save_to_folder: bool) -> Result<String, String> {
+pub fn close_sticked_note(
+    id: String,
+    save_to_folder: bool,
+    geometry: Option<super::note_geometry::NoteGeometry>,
+) -> Result<String, String> {
     let mut store = load_sticked_notes()?;
 
     let note_idx = store
@@ -122,7 +126,13 @@ pub fn close_sticked_note(id: String, save_to_folder: bool) -> Result<String, St
     if save_to_folder {
         use crate::commands::notes::{is_effectively_empty_markdown, save_note_inner};
         if !is_effectively_empty_markdown(&note.content) {
-            let result = save_note_inner(note.folder, note.content)?;
+            let content = match geometry {
+                Some(geometry) => {
+                    super::note_geometry::embed_note_geometry(&note.content, &geometry)
+                }
+                None => note.content,
+            };
+            let result = save_note_inner(note.folder, content)?;
             saved_path = result.path;
         }
     }

@@ -101,7 +101,7 @@ Logs: `.internal/beta090-refresh-{red,green,verification}.log` and
 `.internal/beta090-04f12eb-verification.log`.
 
 The actual `develop` worktree was fast-forwarded to `04f12eb`, built using
-`STIK_DEV_ROOT=…/.internal/beta090-profile ./scripts/build-dev.sh qa`, and passed
+`STIX_DEV_ROOT=…/.internal/beta090-profile ./scripts/build-dev.sh qa`, and passed
 `codesign --verify --deep --strict`. This is an ad-hoc-signed debug bundle, not a
 notarized release. Build/startup evidence is in
 `.internal/beta090-refresh-native.log`; startup reported 63 ms on this local Mac.

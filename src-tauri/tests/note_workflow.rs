@@ -1,25 +1,25 @@
 //! Real local storage workflow, without a GUI, account, Keychain, or mocked I/O.
 #![cfg(debug_assertions)]
 
-use stik_lib::{cursor_positions, index::NoteIndex, notes, paths, settings, storage, trash};
+use stix_lib::{cursor_positions, index::NoteIndex, notes, paths, settings, storage, trash};
 
 #[test]
 fn isolated_capture_read_search_update_and_trash() {
-    let directory = std::env::temp_dir().join(format!("stik-workflow-{}", uuid::Uuid::new_v4()));
+    let directory = std::env::temp_dir().join(format!("stix-workflow-{}", uuid::Uuid::new_v4()));
     std::fs::create_dir(&directory).unwrap();
     let directory = directory.canonicalize().unwrap();
     // This integration-test executable has one test and its own process environment.
-    std::env::set_var("STIK_DEV_ROOT", &directory);
+    std::env::set_var("STIX_DEV_ROOT", &directory);
     eprintln!("Smoke data (retained on failure): {}", directory.display());
 
     let config = settings::get_settings().unwrap();
-    assert!(!config.icloud.enabled && !config.git_sharing.enabled && !config.analytics_enabled);
+    assert!(!config.git_sharing.enabled);
     assert!(!config.ai_features_enabled && !config.auto_update_enabled);
     assert!(config.shortcut_mappings.is_empty());
     assert!(config.system_shortcuts.values().all(String::is_empty));
     assert_eq!(paths::config_dir().unwrap(), directory.join("config"));
     assert_eq!(
-        storage::configured_stik_root().unwrap(),
+        storage::configured_stix_root().unwrap(),
         directory.join("notes")
     );
 
@@ -52,7 +52,7 @@ fn isolated_capture_read_search_update_and_trash() {
     );
     assert!(directory.join("config/cursor_positions.json").is_file());
 
-    let root = storage::stik_root().unwrap();
+    let root = storage::stix_root().unwrap();
     let trashed = trash::trash_managed_note(&root, std::path::Path::new(&saved.path)).unwrap();
     assert!(!std::path::Path::new(&saved.path).exists());
     assert_eq!(

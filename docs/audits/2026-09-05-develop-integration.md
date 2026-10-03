@@ -38,8 +38,8 @@ remain open; passing develop tests is not proof they are resolved on main.
   search entries, and embedding paths synchronously. Watchers exclude Trash and
   hidden paths. Real filesystem regression tests cover these contracts.
 - Trash's main pane no longer says empty when recoverable entries exist.
-- Native QA opens an addressable full editor in an isolated profile. `Stik Dev`
-  fails closed without `STIK_DEV_ROOT` before loading settings.
+- Native QA opens an addressable full editor in an isolated profile. `Stix Dev`
+  fails closed without `STIX_DEV_ROOT` before loading settings.
 - CI is reused as a dependency of beta and stable draft builds. Beta tags name
   the exact tested SHA. Homebrew/landing publication waits for a published stable
   release; both architecture assets and valid hashes are mandatory.
@@ -87,7 +87,7 @@ Both valid assets generated independently checked cask hashes. Those four failur
 cases incorrectly returned success before the patch. Removing beta's `needs:
 checks` in a disposable fixture also failed the platform gate; restoration passed.
 
-Native QA used only `/private/tmp/stik-develop-qa.gIG61L`, not personal notes:
+Native QA used only `/private/tmp/stix-develop-qa.gIG61L`, not personal notes:
 
 - Created a folder and notes; typed then immediately closed the editor; reopened
   the same build/profile and verified file content.
@@ -102,11 +102,11 @@ Native QA used only `/private/tmp/stik-develop-qa.gIG61L`, not personal notes:
 - Opened Settings / Vault Health: healthy, writable scratch vault, 3 disk / 3
   indexed notes. Rebuild index succeeded.
 - Built from the **develop worktree**, not the implementation branch. Deep strict
-  signature verification passed for the ad-hoc-signed arm64 Stik Dev bundle and
+  signature verification passed for the ad-hoc-signed arm64 Stix Dev bundle and
   its sidecar; bundle declares minimum macOS 14. Local build is not notarized.
 
 Native coverage is representative, not exhaustive. The existing personal-data
-Stik process was left running; only disposable Stik Dev sessions were closed.
+Stix process was left running; only disposable Stix Dev sessions were closed.
 
 ## Remaining release gates
 
@@ -142,14 +142,14 @@ From a clean checkout of develop on a compatible Mac:
 ```
 
 `qa` prints its disposable profile/log path and retains it. Reuse that path with
-`STIK_DEV_ROOT=/absolute/scratch/path ./scripts/build-dev.sh qa`. Do not launch the
+`STIX_DEV_ROOT=/absolute/scratch/path ./scripts/build-dev.sh qa`. Do not launch the
 ordinary beta or stable bundle against personal notes for unattended testing.
 
 Local develop bundle:
-`/Users/massimianiv/.config/superpowers/worktrees/stik_app/full-hardening/src-tauri/target/aarch64-apple-darwin/debug/bundle/macos/Stik Dev.app`.
-Evidence logs: `/private/tmp/stik-final-native-fixes-verification.log`,
-`/private/tmp/stik-develop-native-final-build.log`, and
-`/private/tmp/stik-publish-regression.0qyNst/results.json`. These local logs/fixtures
+`/Users/massimianiv/.config/superpowers/worktrees/stik_app/full-hardening/src-tauri/target/aarch64-apple-darwin/debug/bundle/macos/Stix Dev.app`.
+Evidence logs: `/private/tmp/stix-final-native-fixes-verification.log`,
+`/private/tmp/stix-develop-native-final-build.log`, and
+`/private/tmp/stix-publish-regression.0qyNst/results.json`. These local logs/fixtures
 are ephemeral; the repository tests, workflow, and this report are durable.
 
 Earlier scoped reports retain the [benchmark measurements](2026-09-05-search-performance.md),

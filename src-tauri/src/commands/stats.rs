@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::PathBuf;
 
-use super::folders::get_stik_folder;
+use super::folders::get_stix_folder;
 use super::versioning;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -51,10 +51,10 @@ pub fn get_capture_streak() -> Result<CaptureStreakStatus, String> {
 }
 
 fn collect_note_dates() -> Result<Vec<NaiveDate>, String> {
-    let stik_folder = get_stik_folder()?;
+    let stix_folder = get_stix_folder()?;
     let mut dates = Vec::new();
 
-    let folders: Vec<PathBuf> = fs::read_dir(&stik_folder)
+    let folders: Vec<PathBuf> = fs::read_dir(&stix_folder)
         .map_err(|e| e.to_string())?
         .filter_map(|entry| entry.ok())
         .filter(|entry| entry.path().is_dir())
@@ -83,8 +83,8 @@ fn collect_note_dates() -> Result<Vec<NaiveDate>, String> {
 }
 
 fn get_stats_path() -> Result<PathBuf, String> {
-    let stik_config = super::paths::config_dir()?;
-    Ok(stik_config.join("stats.json"))
+    let stix_config = super::paths::config_dir()?;
+    Ok(stix_config.join("stats.json"))
 }
 
 fn save_stats_to_file(stats: &CaptureStats) -> Result<(), String> {

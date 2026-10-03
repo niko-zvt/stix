@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import type { StikSettings } from "@/types";
+import type { StixSettings } from "@/types";
 import {
   getLocale,
   resolveLocale,
@@ -33,7 +33,7 @@ export function useTranslation() {
 /// root; `useTranslation` in child components reads the resulting store.
 export function useLanguageSync() {
   useEffect(() => {
-    invoke<StikSettings>("get_settings")
+    invoke<StixSettings>("get_settings")
       .then((s) => setLocale(resolveLocale(s.language)))
       .catch(() => {
         // Settings unavailable (first run, or backend not ready) — fall back
@@ -41,7 +41,7 @@ export function useLanguageSync() {
         setLocale(resolveLocale(navigator.language));
       });
 
-    const unlisten = listen<StikSettings>("settings-changed", (e) => {
+    const unlisten = listen<StixSettings>("settings-changed", (e) => {
       setLocale(resolveLocale(e.payload.language));
     });
 

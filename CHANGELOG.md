@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Stik will be documented in this file.
+All notable changes to Stix will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.9.0] - 2026-09-08
 
 A full editor for longer notes, recoverable deletion, and
-more reliable saves across Stik's windows. This update also adds Simplified
+more reliable saves across Stix's windows. This update also adds Simplified
 Chinese, makes privacy choices explicit, and reduces repeated work in search.
 
 ### Before upgrading
@@ -18,7 +18,7 @@ Chinese, makes privacy choices explicit, and reduces repeated work in search.
 - **Requires macOS 14 Sonoma or later.** The application and bundled DarwinKit sidecar now declare the same minimum version.
 - Back up your notes and, if you use locked notes, export your recovery key from **Settings → Privacy** and keep it somewhere secure. The legacy key file is removed only after its replacement has been written to Keychain and read back successfully. Do not manually delete it if migration reports an error.
 - Existing notes keep their filenames. **Simple filenames** is an opt-in setting for new notes; without a date in the filename, streaks and On This Day use the file's modification date.
-- Re-import previously configured custom fonts that do not render. Imported fonts are now copied into Stik's font directory, so moving or deleting the original download does not break them.
+- Re-import previously configured custom fonts that do not render. Imported fonts are now copied into Stix's font directory, so moving or deleting the original download does not break them.
 - Remote images in Markdown are blocked by default. Enable **Load remote images automatically** only if you want notes to contact external image hosts. Analytics also requires explicit opt-in.
 
 ### Added
@@ -51,7 +51,7 @@ Chinese, makes privacy choices explicit, and reduces repeated work in search.
 - **Blank editor after initialization errors:** failed settings or asset-directory reads now show an error while keeping note source editable. This addresses those failure paths, not every possible blank-window cause.
 - **Distinct viewing windows:** paths containing spaces, periods, Unicode, or URL delimiters no longer collapse to the same viewing-window identity.
 - **Safer file operations:** temporarily clearing an existing note no longer deletes it. Concurrent saves use distinct temporary files, and create/rename/move conflicts do not silently overwrite another note. Folder renames update descendant settings and search paths; deleted notes stay out of search when filesystem events arrive.
-- **Fonts:** built-in web fonts and imported fonts are no longer blocked by the application's content policy or an invalid asset path. Imported font reads stay confined to Stik's font directory. ([#89](https://github.com/0xMassi/stik_app/pull/89))
+- **Fonts:** built-in web fonts and imported fonts are no longer blocked by the application's content policy or an invalid asset path. Imported font reads stay confined to Stix's font directory. ([#89](https://github.com/0xMassi/stik_app/pull/89))
 - **Keyboard and appearance:** physical-key shortcut matching works with non-US layouts, the editor retains its Cmd+K action, and selected Settings tabs use the active theme's accent tint. Shortcut-label localization remains separate from physical-key matching. ([#98](https://github.com/0xMassi/stik_app/pull/98))
 - Native-command failures now surface actionable messages, and a nonempty Trash no longer displays an empty-state message.
 
@@ -86,10 +86,10 @@ Voice dictation, clipboard capture, and dev tooling
 - **Dictation setup modal** — first-run picker for language (auto-detect + 20 common languages) and Whisper model tier (`small` ~250 MB for speed, `large-v3 turbo` ~632 MB for accuracy). Choice is persisted, reopens on demand from Settings
 - **Dictation settings panel** — new "Dictation" tab under Settings lets you change active model, switch languages, delete downloaded models, and see disk usage
 - **Clip capture** — new `⌘⇧C` shortcut grabs the currently-selected text from any app (Safari, Terminal, VS Code, anywhere with a standard text field) via the Accessibility API and appends it to a dedicated "Clips" note. No clipboard round-trip, no flaky keystroke simulation
-- **Accessibility permission prompts** — when clip capture is used without Accessibility granted, Stik now opens System Settings → Privacy & Security → Accessibility directly, with session-level dedup so it doesn't re-open on every failed capture
+- **Accessibility permission prompts** — when clip capture is used without Accessibility granted, Stix now opens System Settings → Privacy & Security → Accessibility directly, with session-level dedup so it doesn't re-open on every failed capture
 
 ### Fixed
-- **iCloud container path broken after macOS iCloud migration** (#60) — Stik now syncs into `~/Library/Mobile Documents/com~apple~CloudDocs/Stik/` (standard iCloud Drive) instead of the legacy `iCloud~com~0xmassi~stik` container path, which had stopped working for new installs
+- **iCloud container path broken after macOS iCloud migration** (#60) — Stix now syncs into `~/Library/Mobile Documents/com~apple~CloudDocs/Stix/` (standard iCloud Drive) instead of the legacy `iCloud~com~0xmassi~stix` container path, which had stopped working for new installs
 - **Search results couldn't open notes** (#61) — `get_note_content` was rejecting valid paths because it compared raw input against a canonicalized notes root. Both sides now canonicalize before the `starts_with` check, so notes opened from semantic search results load correctly
 
 ### Changed
@@ -98,7 +98,7 @@ Voice dictation, clipboard capture, and dev tooling
 - **App moved devtools console behind an explicit opt-in** — no longer auto-opens in debug builds, which was noisy while iterating on features that steal focus
 
 ### Developer experience
-- Local dev now uses a stable code-signing identity (auto-detects `Developer ID Application` in login keychain, or falls back to a self-signed `Stik Local Dev` cert), so TCC grants (Mic, Accessibility) persist across rebuilds instead of needing to be re-granted on every `cargo build`
+- Local dev now uses a stable code-signing identity (auto-detects `Developer ID Application` in login keychain, or falls back to a self-signed `Stix Local Dev` cert), so TCC grants (Mic, Accessibility) persist across rebuilds instead of needing to be re-granted on every `cargo build`
 - Fast incremental rebuild loop (`~20–40 s` vs. `2–3 min` for full bundle) for iterating on TCC/entitlements/signing-dependent features that `tauri dev` can't cover
 
 ## [0.7.9] - 2026-03-17
@@ -145,7 +145,7 @@ Note locking, iCloud sync, and storage abstraction
 
 ### Fixed
 - **Window opening off-screen** — `⌘⇧S` no longer opens on a disconnected external monitor; falls back to centering on the primary display
-- **Keychain double-prompting** — switched from macOS Keychain to file-based key storage (`~/.stik/note-key`) with one-time Keychain migration to avoid duplicate auth dialogs
+- **Keychain double-prompting** — switched from macOS Keychain to file-based key storage (`~/.stix/note-key`) with one-time Keychain migration to avoid duplicate auth dialogs
 - **Locked notes showing "Untitled"** — encrypted notes now derive a readable title from their filename slug instead of showing "Untitled"
 
 ## [0.7.5] - 2026-03-04
@@ -173,7 +173,7 @@ Window position and cursor persistence
 Finder integration, auto-updater improvements, and cleanup
 
 ### Added
-- **macOS Finder "Open With" support** — Stik now registers as a markdown editor; double-click or right-click any `.md`/`.markdown` file in Finder to open it directly in Stik (contributed by [@ildunari](https://github.com/ildunari))
+- **macOS Finder "Open With" support** — Stix now registers as a markdown editor; double-click or right-click any `.md`/`.markdown` file in Finder to open it directly in Stix (contributed by [@ildunari](https://github.com/ildunari))
 
 ### Changed
 - **Smarter auto-updater** — update check now uses a 15s timeout, deduplicates already-installed updates, and avoids re-downloading the same version on repeated launches
@@ -233,7 +233,7 @@ Inline images, RTL support, zen mode, and quality-of-life improvements (#37)
 - **Inline image rendering** — pasted/dropped images render as live previews inside the editor. Click to reveal raw markdown for editing, move cursor away to re-render. Broken images show a placeholder
 - **RTL and bidirectional text support** — three modes (Auto/LTR/RTL) in Settings > Editor. Auto mode detects direction per line using the browser's Unicode Bidi Algorithm, ideal for Arabic, Hebrew, and mixed-language notes
 - **Zen mode** — press Cmd+. (customizable in Settings > Shortcuts) to toggle distraction-free writing. Hides header, footer, and formatting toolbar
-- **Hide menu bar icon** — toggle in Settings > Editor to remove the tray icon from the menu bar. Stik remains accessible via global shortcuts
+- **Hide menu bar icon** — toggle in Settings > Editor to remove the tray icon from the menu bar. Stix remains accessible via global shortcuts
 - **Capture window size persistence** — the quick capture window remembers its size across sessions. Resize once, and it stays
 
 ### Fixed
@@ -274,7 +274,7 @@ Vim command-mode reliability and markdown link UX fixes
 Capture window stability and auto-updater fix
 
 ### Fixed
-- **Ghost process from auto-updater in dev mode** — `downloadAndInstall()` was extracting to a temp dir and spawning a second Stik process from an older release, causing two instances to compete for the global shortcut. Auto-updater now skips in dev builds
+- **Ghost process from auto-updater in dev mode** — `downloadAndInstall()` was extracting to a temp dir and spawning a second Stix process from an older release, causing two instances to compete for the global shortcut. Auto-updater now skips in dev builds
 - **Stale content on fast Escape** — `handleSaveAndClose` reads from a ref instead of React state closure, preventing "/" or empty content from being saved when typing + Escape outraces React's render flush
 - **Folder picker stuck open after blur-auto-hide** — hiding the window via blur (switching to another app) bypassed `handleSaveAndClose`, leaving `showPicker=true` on reopen. Picker now resets on window focus
 - **Escape ignored with folder picker open** — pressing Escape when the folder picker was visible was a no-op; now explicitly dismisses the picker (next Escape saves/closes)
@@ -317,7 +317,7 @@ Editor toolbar, font zoom, and quality-of-life fixes
 - **Link button integration** — toolbar link button dispatches `Cmd+K` to open the existing LinkPopover editor, no separate prompt
 - **Toolbar toggle** — show/hide formatting bar via footer button (T icon), persisted in localStorage. Auto-hidden in vim mode
 - **Configurable font size** — `Cmd+`/`Cmd-` to zoom editor text (range 12-48px), `Cmd+0` to reset. Stepper in Settings > Editor. Headings and code scale proportionally
-- **Root-level notes** — save notes directly to `~/Documents/Stik/` without requiring a folder. Shows "Stik" badge when no folder is set
+- **Root-level notes** — save notes directly to `~/Documents/Stix/` without requiring a folder. Shows "Stix" badge when no folder is set
 - **Footer quick-access buttons** — search, manager, and settings buttons in the PostIt footer for all window types
 - **Community standards** — added CONTRIBUTING.md, SECURITY.md, issue templates, and PR template
 
@@ -440,7 +440,7 @@ On-device AI & git sharing
 - **On-device AI features** powered by DarwinKit sidecar (Apple NaturalLanguage framework, zero cloud dependency)
   - **Semantic search** — hybrid text + semantic results in search modal with similarity badges
   - **Folder suggestions** — real-time AI-powered folder pill while capturing notes, based on folder centroids
-  - **Note embeddings** — background embedding build on launch, persisted to `~/.stik/embeddings.json`
+  - **Note embeddings** — background embedding build on launch, persisted to `~/.stix/embeddings.json`
 - **Git sharing** — sync folders via git with configurable repository layout (monorepo or per-folder), background auto-sync worker
 - **Capture streak** — consecutive-day counter shown in tray menu and settings
 - **On This Day** — daily notification resurfacing notes from the same date in prior years
@@ -467,7 +467,7 @@ Security hardening & architecture refactor
 - **Versioned JSON storage** — settings and sticked notes use `{ version, data }` envelope with auto-migration
 - **Path traversal validation** on folder/note names
 - **Content Security Policy** — restrictive CSP for the webview
-- **Scoped filesystem permissions** — limited to `~/Documents/Stik/` and `~/.stik/`
+- **Scoped filesystem permissions** — limited to `~/Documents/Stix/` and `~/.stix/`
 - **Toast notification** when attempting to delete the protected Inbox folder
 - **Shared TypeScript types** (`src/types/index.ts`) used across all components
 - **Extracted `SettingsContent` component** — shared settings UI for both window and dialog modes
@@ -516,7 +516,7 @@ First release
   - Rename folders (`Cmd+R` in folder selector)
 - **Safety**: Inbox folder protected from deletion/rename
 - **Rich text editor**: Markdown support via Tiptap
-- **Local storage**: Notes saved as `.md` files in `~/Documents/Stik/`
+- **Local storage**: Notes saved as `.md` files in `~/Documents/Stix/`
 
 ### Technical
 - Built with Tauri 2.0 (Rust backend, React frontend)

@@ -28,41 +28,41 @@ Usage: ./scripts/build-dev.sh [doctor|setup|dev|qa|build|sidecar]
 
   doctor    Check local prerequisites without installing or building
   setup     Initialize submodules, install dependencies, build sidecar and frontend
-  dev       Start Stik Dev with isolated data and hot reload (default)
-  qa        Build and launch an isolated Stik Dev.app for native UI automation
-  build     Build DarwinKit and a local debug Stik.app for this Mac
+  dev       Start Stix Dev with isolated data and hot reload (default)
+  qa        Build and launch an isolated Stix Dev.app for native UI automation
+  build     Build DarwinKit and a local debug Stix.app for this Mac
   sidecar   Build and install only the DarwinKit sidecar
 EOF
 }
 
 prepare_dev_session() {
   if [[ "$1" == dev ]]; then
-  export STIK_DEV_PORT="${STIK_DEV_PORT:-1420}"
+  export STIX_DEV_PORT="${STIX_DEV_PORT:-1420}"
   node --input-type=module -e '
     import net from "node:net";
-    const port = Number(process.env.STIK_DEV_PORT);
+    const port = Number(process.env.STIX_DEV_PORT);
     if (!Number.isInteger(port) || port < 1024 || port > 65535) {
-      console.error("STIK_DEV_PORT must be an integer from 1024 to 65535");
+      console.error("STIX_DEV_PORT must be an integer from 1024 to 65535");
       process.exit(1);
     }
     const probe = net.createServer();
     probe.once("error", error => {
-      console.error(`Cannot use development port ${port}: ${error.code}. Choose STIK_DEV_PORT=1422; do not kill another session.`);
+      console.error(`Cannot use development port ${port}: ${error.code}. Choose STIX_DEV_PORT=1422; do not kill another session.`);
       process.exit(1);
     });
     probe.listen(port, "127.0.0.1", () => probe.close());
   '
   fi
-  if [[ -z "${STIK_DEV_ROOT:-}" ]]; then
-    STIK_DEV_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/stik-dev.XXXXXX")"
+  if [[ -z "${STIX_DEV_ROOT:-}" ]]; then
+    STIX_DEV_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/stix-dev.XXXXXX")"
   fi
-  [[ "$STIK_DEV_ROOT" == /* && "$STIK_DEV_ROOT" != / && "/$STIK_DEV_ROOT/" != */../* ]] ||
-    fail "STIK_DEV_ROOT must be an absolute, non-root path without '..'"
-  export STIK_DEV_ROOT
-  mkdir -p "$STIK_DEV_ROOT/logs"
-  STIK_DEV_ROOT="$(cd -- "$STIK_DEV_ROOT" && pwd -P)"
-  log "Isolated data: $STIK_DEV_ROOT (retained after exit)"
-  log "Native and Vite logs: $STIK_DEV_ROOT/logs/dev.log"
+  [[ "$STIX_DEV_ROOT" == /* && "$STIX_DEV_ROOT" != / && "/$STIX_DEV_ROOT/" != */../* ]] ||
+    fail "STIX_DEV_ROOT must be an absolute, non-root path without '..'"
+  export STIX_DEV_ROOT
+  mkdir -p "$STIX_DEV_ROOT/logs"
+  STIX_DEV_ROOT="$(cd -- "$STIX_DEV_ROOT" && pwd -P)"
+  log "Isolated data: $STIX_DEV_ROOT (retained after exit)"
+  log "Native and Vite logs: $STIX_DEV_ROOT/logs/dev.log"
 }
 
 require_command() {
@@ -125,7 +125,7 @@ main() {
   fi
   [[ $# -le 1 ]] || fail "expected at most one mode argument"
   case "$mode" in doctor|setup|dev|qa|build|sidecar) ;; *) usage >&2; fail "unknown mode: $mode" ;; esac
-  [[ "$(uname -s)" == "Darwin" ]] || fail "Stik development builds require macOS"
+  [[ "$(uname -s)" == "Darwin" ]] || fail "Stix development builds require macOS"
 
   require_command node "Install Node.js 20 or newer."
   node -e 'if (Number(process.versions.node.split(".")[0]) < 20) { console.error("Node.js 20 or newer is required"); process.exit(1); }'
@@ -170,9 +170,9 @@ main() {
     dev)
       build_sidecar debug
       local dev_config
-      dev_config="$(node -e 'process.stdout.write(JSON.stringify({identifier:"com.stik.dev",productName:"Stik Dev",build:{devUrl:`http://127.0.0.1:${process.env.STIK_DEV_PORT}`}}))')"
-      log "Starting Stik Dev (${RUST_TARGET}, port ${STIK_DEV_PORT})"
-      bun run tauri dev --target "$RUST_TARGET" --config "$dev_config" 2>&1 | tee "$STIK_DEV_ROOT/logs/dev.log"
+      dev_config="$(node -e 'process.stdout.write(JSON.stringify({identifier:"com.stix.dev",productName:"Stix Dev",build:{devUrl:`http://127.0.0.1:${process.env.STIX_DEV_PORT}`}}))')"
+      log "Starting Stix Dev (${RUST_TARGET}, port ${STIX_DEV_PORT})"
+      bun run tauri dev --target "$RUST_TARGET" --config "$dev_config" 2>&1 | tee "$STIX_DEV_ROOT/logs/dev.log"
       ;;
     setup)
       build_sidecar debug
@@ -181,20 +181,20 @@ main() {
     qa)
       build_sidecar debug
       bun run tauri build --debug --target "$RUST_TARGET" --bundles app \
-        --config '{"identifier":"com.stik.dev","productName":"Stik Dev","bundle":{"createUpdaterArtifacts":false}}'
-      log "Launching Stik Dev.app; stop with Ctrl-C"
-      "$REPO_ROOT/src-tauri/target/$RUST_TARGET/debug/bundle/macos/Stik Dev.app/Contents/MacOS/stik" \
-        2>&1 | tee "$STIK_DEV_ROOT/logs/dev.log"
+        --config '{"identifier":"com.stix.dev","productName":"Stix Dev","bundle":{"createUpdaterArtifacts":false}}'
+      log "Launching Stix Dev.app; stop with Ctrl-C"
+      "$REPO_ROOT/src-tauri/target/$RUST_TARGET/debug/bundle/macos/Stix Dev.app/Contents/MacOS/stix" \
+        2>&1 | tee "$STIX_DEV_ROOT/logs/dev.log"
       ;;
     build)
       build_sidecar debug
-      log "Building local Stik.app (${RUST_TARGET})"
+      log "Building local Stix.app (${RUST_TARGET})"
       bun run tauri build \
         --debug \
         --target "$RUST_TARGET" \
         --bundles app \
         --config '{"bundle":{"createUpdaterArtifacts":false}}'
-      log "App ready at src-tauri/target/${RUST_TARGET}/debug/bundle/macos/Stik.app"
+      log "App ready at src-tauri/target/${RUST_TARGET}/debug/bundle/macos/Stix.app"
       ;;
     sidecar)
       build_sidecar debug

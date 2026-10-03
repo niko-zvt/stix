@@ -132,7 +132,7 @@ pub fn start_bridge(app: tauri::AppHandle) {
     }
 
     if let Err(e) = thread::Builder::new()
-        .name("stik-darwinkit".to_string())
+        .name("stix-darwinkit".to_string())
         .spawn(move || bridge_loop(sidecar_path, rx))
     {
         eprintln!("Failed to start darwinkit bridge thread: {}", e);
@@ -172,7 +172,7 @@ pub fn call_with_timeout(
         .map_err(|_| format!("DarwinKit call timed out ({}s)", timeout_secs))?
 }
 
-/// Register a callback for push notifications from DarwinKit (e.g., icloud.files_changed).
+/// Register a callback for push notifications from DarwinKit (for example dictation progress).
 /// Call once during setup. The callback receives (method, params).
 pub fn register_notification_handler(handler: impl Fn(String, Value) + Send + Sync + 'static) {
     let _ = NOTIFICATION_HANDLER.set(Box::new(handler));
@@ -220,7 +220,7 @@ fn bridge_loop(sidecar_path: String, rx: Receiver<BridgeMessage>) {
 
 fn spawn_sidecar(path: &str) -> Result<(Child, ChildStdin, ChildStdout), String> {
     // Pipe stderr through a reader thread in debug builds so sidecar logs
-    // ([speech], [darwinkit]) land in /tmp/stik-darwinkit.log where we can
+    // ([speech], [darwinkit]) land in /tmp/stix-darwinkit.log where we can
     // tail them while debugging. In release, discard.
     let stderr_cfg = if cfg!(debug_assertions) {
         Stdio::piped()
@@ -239,11 +239,11 @@ fn spawn_sidecar(path: &str) -> Result<(Child, ChildStdin, ChildStdout), String>
     #[cfg(debug_assertions)]
     if let Some(stderr) = child.stderr.take() {
         thread::Builder::new()
-            .name("stik-darwinkit-stderr".to_string())
+            .name("stix-darwinkit-stderr".to_string())
             .spawn(move || {
                 use std::io::Write as _;
                 let reader = BufReader::new(stderr);
-                let path = "/tmp/stik-darwinkit.log";
+                let path = "/tmp/stix-darwinkit.log";
                 let mut file = match std::fs::OpenOptions::new()
                     .create(true)
                     .append(true)
@@ -283,7 +283,7 @@ fn run_session(mut stdin: ChildStdin, stdout: ChildStdout, rx: &Receiver<BridgeM
     // Reader thread: parses stdout lines and dispatches responses
     let pending_clone = pending.clone();
     let reader_handle = thread::Builder::new()
-        .name("stik-darwinkit-reader".to_string())
+        .name("stix-darwinkit-reader".to_string())
         .spawn(move || {
             let reader = BufReader::new(stdout);
             for line in reader.lines() {
@@ -332,7 +332,7 @@ fn run_session(mut stdin: ChildStdin, stdout: ChildStdout, rx: &Receiver<BridgeM
                                 }
                             }
                             _ => {
-                                // Push notification from DarwinKit (e.g., icloud.files_changed)
+                                // Push notification from DarwinKit (for example dictation progress)
                                 if let Some(handler) = NOTIFICATION_HANDLER.get() {
                                     let params = response.params.clone().unwrap_or(Value::Null);
                                     handler(method.clone(), params);

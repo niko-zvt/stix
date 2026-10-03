@@ -14,23 +14,23 @@ use super::{notes, storage};
 
 static WATCHER_RUNNING: OnceLock<()> = OnceLock::new();
 
-/// Start watching the Stik root directory for .md file changes.
+/// Start watching the Stix root directory for .md file changes.
 /// No-ops if already running or if root cannot be resolved.
 pub fn start(app: AppHandle) {
     if WATCHER_RUNNING.set(()).is_err() {
         return; // already running
     }
 
-    let root = match super::folders::get_stik_folder() {
+    let root = match super::folders::get_stix_folder() {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("file_watcher: cannot resolve stik root: {}", e);
+            eprintln!("file_watcher: cannot resolve stix root: {}", e);
             return;
         }
     };
 
     std::thread::Builder::new()
-        .name("stik-file-watcher".to_string())
+        .name("stix-file-watcher".to_string())
         .spawn(move || run(app, root))
         .ok();
 }
@@ -100,7 +100,7 @@ fn run(app: AppHandle, root: PathBuf) {
 /// Shared handler: update NoteIndex, EmbeddingIndex, emit frontend event.
 /// Used by both the local file watcher and iCloud notification handler.
 pub fn handle_changes(app: &AppHandle, paths: &[String]) {
-    let Ok(root) = super::folders::get_stik_folder() else {
+    let Ok(root) = super::folders::get_stix_folder() else {
         return;
     };
     // Our own saves already updated the index, so re-handling them would

@@ -1,7 +1,7 @@
 import { t, getLocale } from "@/i18n";
 
 /**
- * Convert a Stik filename-derived date string (YYYYMMDD-HHMMSS) into a
+ * Convert a Stix filename-derived date string (YYYYMMDD-HHMMSS) into a
  * human-friendly relative label: "Just now", "5 min ago", "2 hours ago",
  * "Yesterday", day-of-week for the last 7 days, or DD/MM/YY for older.
  */

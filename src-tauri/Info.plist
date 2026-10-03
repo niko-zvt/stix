@@ -3,6 +3,6 @@
 <plist version="1.0">
 <dict>
     <key>NSMicrophoneUsageDescription</key>
-    <string>Stik uses the microphone for voice dictation. Audio is processed entirely on-device by Whisper and never leaves your Mac.</string>
+    <string>Stix uses the microphone for voice dictation. Audio is processed entirely on-device by Whisper and never leaves your Mac.</string>
 </dict>
 </plist>

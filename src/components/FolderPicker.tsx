@@ -65,7 +65,7 @@ export default function FolderPicker({
   }, [filteredFolders, selectedIndex, onSelect, onClose]);
 
   return (
-    <div className="absolute top-2 left-3 right-3 bg-bg rounded-[10px] shadow-stik border border-line/50 overflow-hidden z-10">
+    <div className="absolute top-2 left-3 right-3 bg-bg rounded-[10px] shadow-stix border border-line/50 overflow-hidden z-10">
       {filteredFolders.length > 0 ? (
         <div className="py-1">
           {filteredFolders.slice(0, 5).map((folder, i) => (

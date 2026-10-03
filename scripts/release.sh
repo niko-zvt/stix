@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Stik Release Script
+# Stix Release Script
 # Usage: ./scripts/release.sh [major|minor|patch|x.y.z]
 
 set -e
@@ -18,7 +18,7 @@ print_error() { echo -e "${RED}✗${NC} $1"; exit 1; }
 
 # Get current version
 CURRENT_VERSION=$(node -p "require('./package.json').version")
-echo -e "${BLUE}Stik Release${NC}"
+echo -e "${BLUE}Stix Release${NC}"
 echo "Current version: ${CURRENT_VERSION}"
 echo ""
 

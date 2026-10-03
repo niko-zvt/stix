@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Stik",
+  "productName": "Stix",
   "version": "0.9.0",
-  "identifier": "com.stik.app",
+  "identifier": "com.stix.app",
   "build": {
     "beforeBuildCommand": "bun run build",
     "beforeDevCommand": "bun run dev",
@@ -15,7 +15,7 @@
     "windows": [
       {
         "label": "postit",
-        "title": "Stik",
+        "title": "Stix",
         "width": 400,
         "height": 300,
         "minWidth": 320,
@@ -36,8 +36,7 @@
       "assetProtocol": {
         "enable": true,
         "scope": [
-          "$DOCUMENT/Stik/**/.assets/**",
-          "$HOME/Library/Mobile Documents/com~apple~CloudDocs/Stik/**/.assets/**"
+          "$DOCUMENT/Stix/**/.assets/**"
         ]
       }
     }
@@ -75,9 +74,9 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDE1NEY0NEQ3MjhDOTdFMDQKUldRRWZza28xMFJQRlV4azBUMDNXT1dmWllBVlI0NVhubDBBT056Z2dIY2FqUE1OU21SMzl4NE0K",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDYyM0VGMjdCM0FCRjA5QzIKUldUQ0NiODZlL0krWXRQTGVwVlFYcnBsSWg3SkFKT2YySGNFdlhrbS9HNCtlaVNTUURaUUlrVXcK",
       "endpoints": [
-        "https://github.com/0xMassi/stik_app/releases/latest/download/latest.json"
+        "https://github.com/niko-zvt/stix/releases/latest/download/latest.json"
       ]
     }
   }

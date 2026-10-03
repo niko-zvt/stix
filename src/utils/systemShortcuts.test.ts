@@ -1,9 +1,25 @@
 import { describe, it, expect } from "vitest";
 import {
   SYSTEM_SHORTCUT_ACTIONS,
+  SYSTEM_SHORTCUT_DEFAULTS,
   getSystemShortcutValues,
   isClearableAction,
 } from "./systemShortcuts";
+
+describe("default system shortcuts", () => {
+  it("uses Control+Option so the chords stay clear of Cmd+Shift apps", () => {
+    expect(SYSTEM_SHORTCUT_DEFAULTS).toEqual({
+      search: "Ctrl+Option+P",
+      manager: "Ctrl+Option+M",
+      settings: "Ctrl+Option+Comma",
+      last_note: "Ctrl+Option+L",
+      zen_mode: "Ctrl+Option+Period",
+      dictation: "Ctrl+Option+D",
+      voice_note: "Ctrl+Option+V",
+      clip_capture: "Ctrl+Option+C",
+    });
+  });
+});
 
 describe("clearing system shortcuts (#92)", () => {
   it("lets every action be cleared except Settings", () => {

@@ -2,9 +2,9 @@ import * as React from "react";
 import { Command as CommandPrimitive } from "cmdk";
 import Dialog from "./Dialog";
 
-/// shadcn-style Command primitives, trimmed to what Stik uses.
+/// shadcn-style Command primitives, trimmed to what Stix uses.
 ///
-/// Stik does not otherwise use shadcn, so rather than pull the whole registry
+/// Stix does not otherwise use shadcn, so rather than pull the whole registry
 /// this wraps cmdk directly with the same component names and Tailwind tokens
 /// the rest of the app uses.
 
@@ -90,7 +90,7 @@ interface CommandDialogProps {
 }
 
 /// Lightweight dialog wrapper. Radix's Dialog would be the shadcn default, but
-/// Stik already renders its own overlays and adding Radix for one surface is
+/// Stix already renders its own overlays and adding Radix for one surface is
 /// more dependency than this needs.
 function CommandDialog({ open, onOpenChange, label, children }: CommandDialogProps) {
   if (!open) return null;
@@ -101,7 +101,7 @@ function CommandDialog({ open, onOpenChange, label, children }: CommandDialogPro
       onClose={() => onOpenChange(false)}
       closeOnBackdrop
       backdropClassName="fixed inset-0 z-[400] flex items-start justify-center bg-black/40 pt-[18vh] backdrop-blur-sm"
-      panelClassName="relative w-[min(90vw,420px)] overflow-hidden rounded-xl border border-line bg-bg shadow-stik"
+      panelClassName="relative w-[min(90vw,420px)] overflow-hidden rounded-xl border border-line bg-bg shadow-stix"
       titleClassName="sr-only"
     >
         <Command

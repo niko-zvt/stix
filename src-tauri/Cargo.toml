@@ -1,13 +1,18 @@
 [package]
-name = "stik"
+name = "stix"
 version = "0.9.0"
 description = "Instant thought capture"
 authors = ["Massi"]
 edition = "2021"
+autobins = false
 
 [lib]
-name = "stik_lib"
+name = "stix_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "stix"
+path = "src/main.rs"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
@@ -30,7 +35,6 @@ arboard = "3"
 base64 = "0.23"
 image = { version = "0.25", default-features = false, features = ["png"] }
 tauri-plugin-dialog = "2.6.0"
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 rusqlite = { version = "0.40", features = ["bundled"] }
 flate2 = "1"
 prost = "0.14"
@@ -42,7 +46,7 @@ notify-debouncer-mini = "0.5"
 [target.'cfg(target_os = "macos")'.dependencies]
 security-framework = "3"
 objc2 = { version = "0.6.3", default-features = false, features = ["std"] }
-objc2-app-kit = { version = "0.3.2", default-features = false, features = ["NSView", "NSBitmapImageRep", "NSImageRep", "NSApplication", "NSRunningApplication"] }
+objc2-app-kit = { version = "0.3.2", default-features = false, features = ["NSView", "NSBitmapImageRep", "NSImageRep", "NSApplication", "NSRunningApplication", "NSWindow"] }
 core-foundation = "0.10"
 objc2-foundation = { version = "0.3.2", default-features = false, features = ["NSData", "NSDictionary", "NSGeometry"] }
 

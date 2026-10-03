@@ -1,6 +1,6 @@
 import type { TranslationKey } from "@/i18n";
 
-export type SettingsSocialLinkId = "help" | "x" | "discord";
+export type SettingsSocialLinkId = "help";
 
 export interface SettingsSocialLink {
   id: SettingsSocialLinkId;
@@ -17,18 +17,6 @@ export const SETTINGS_SOCIAL_LINKS: SettingsSocialLink[] = [
     id: "help",
     labelKey: "social.help",
     ariaLabelKey: "social.helpTitle",
-    href: "mailto:massimianivalerio1@gmail.com",
-  },
-  {
-    id: "x",
-    labelKey: "social.x",
-    ariaLabelKey: "social.xTitle",
-    href: "https://x.com/stik_app",
-  },
-  {
-    id: "discord",
-    labelKey: "social.discord",
-    ariaLabelKey: "social.discordTitle",
-    href: "https://discord.gg/gG8vdCCRzW",
+    href: "https://github.com/niko-zvt/stix/issues",
   },
 ];

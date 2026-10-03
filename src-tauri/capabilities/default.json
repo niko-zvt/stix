@@ -1,8 +1,8 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Default capabilities for Stik",
-  "windows": ["postit", "settings", "command-palette", "sticked-*", "apple-notes-picker", "editor"],
+  "description": "Default capabilities for Stix",
+  "windows": ["postit", "settings", "command-palette", "sticked-*", "capture-*", "apple-notes-picker", "editor"],
   "permissions": [
     "core:default",
     "core:window:allow-start-dragging",
@@ -24,15 +24,15 @@
     {
       "identifier": "fs:allow-read-text-file",
       "allow": [
-        { "path": "$DOCUMENT/Stik/**" },
-        { "path": "$HOME/.stik/**" }
+        { "path": "$DOCUMENT/Stix/**" },
+        { "path": "$HOME/.stix/**" }
       ]
     },
     {
       "identifier": "fs:allow-write-text-file",
       "allow": [
-        { "path": "$DOCUMENT/Stik/**" },
-        { "path": "$HOME/.stik/**" }
+        { "path": "$DOCUMENT/Stix/**" },
+        { "path": "$HOME/.stix/**" }
       ]
     }
   ]

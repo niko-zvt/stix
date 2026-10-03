@@ -1,4 +1,4 @@
-# Stik Full Hardening Implementation Plan
+# Stix Full Hardening Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
@@ -121,7 +121,7 @@
 **Steps:**
 1. Extract a key-store interface and write failing tests using an in-memory implementation for create/read/migrate/failure behavior.
 2. Implement the production store with `security-framework` generic passwords and a stable service/account name.
-3. Migrate `~/.stik/note-key` only after Keychain read-back matches; then remove the legacy file.
+3. Migrate `~/.stix/note-key` only after Keychain read-back matches; then remove the legacy file.
 4. Require managed-note authorization for lock, unlock, read, save, and status commands.
 5. Run Cargo tests and commit `fix(security): protect locked-note keys with Keychain`.
 

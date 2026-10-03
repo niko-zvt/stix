@@ -11,7 +11,7 @@ assignees: ''
 A clear description of what's wrong.
 
 **Steps to reproduce**
-1. Open Stik
+1. Open Stix
 2. ...
 3. ...
 
@@ -26,8 +26,8 @@ If applicable, add screenshots to help explain the problem.
 
 **Environment**
 - macOS version: [e.g. 15.2]
-- Stik version: [e.g. 0.4.4 -- check in Settings]
+- Stix version: [e.g. 0.9.0 -- check in Settings]
 - Install method: [Homebrew / DMG / Built from source]
 
 **Additional context**
-Any other details. Console logs from `Console.app` (filter by "Stik") are helpful for crashes.
+Any other details. Console logs from `Console.app` (filter by "Stix") are helpful for crashes.

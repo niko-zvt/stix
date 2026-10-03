@@ -5,7 +5,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import ThemeProvider from "./themes/ThemeProvider";
 import "./styles/globals.css";
 
-globalThis.performance?.mark?.("stik:frontend-start");
+globalThis.performance?.mark?.("stix:frontend-start");
 
 const CommandMenu = lazy(() => import("./components/CommandMenu"));
 

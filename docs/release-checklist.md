@@ -1,13 +1,30 @@
-# Stik release checklist
+# Stix release checklist
 
 CI is reused by both build workflows: a failed quality/security job blocks beta
 publication and stable draft builds. Beta tags point to the exact tested SHA.
-Stable tag pushes build a draft only; Homebrew and the landing page update on
-the stable release's `published` event, after its assets are public. Publish
-manually or with an authorized user token (events created by `GITHUB_TOKEN`
-do not start another workflow).
+Stable tag pushes build a draft only. Publish manually or with an authorized
+user token (events created by `GITHUB_TOKEN` do not start another workflow).
 
-Use this checklist for stable releases. Beta builds may skip the Homebrew and updater-feed steps, but they must pass the same code, privacy, storage, and accessibility gates.
+Use this checklist for stable releases. Beta builds may skip the updater-feed
+steps, but they must pass the same code, privacy, storage, and accessibility gates.
+
+## Repository secrets
+
+Set these in GitHub → Settings → Secrets and variables → Actions. `GITHUB_TOKEN`
+is provided by Actions. Do not add `HOMEBREW_TAP_TOKEN` or `VERCEL_DEPLOY_HOOK`.
+
+- `TAURI_SIGNING_PRIVATE_KEY` — contents of `.updater/stix.key`. Never commit that file.
+- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` — password for that key, when the key has one.
+- `APPLE_CERTIFICATE` — Developer ID Application `.p12`, base64-encoded.
+- `APPLE_CERTIFICATE_PASSWORD` — password for the `.p12`.
+- `APPLE_SIGNING_IDENTITY` — certificate name from `security find-identity`.
+- `APPLE_TEAM_ID` — Apple Developer Team ID.
+- `APPLE_ID` — Apple ID used for notarization.
+- `APPLE_PASSWORD` — app-specific password for that Apple ID.
+
+The updater feed is `https://github.com/niko-zvt/stix/releases/latest/download/latest.json`.
+The matching public key is already in `src-tauri/tauri.conf.json`. Until a release
+publishes `latest.json`, update checks fail closed.
 
 ## 1. Prepare the release
 
@@ -48,16 +65,14 @@ Use a scratch notes directory. Stable and beta builds can share settings, so nev
 - [ ] With capture, viewing, pinned, and full-editor windows open, type and immediately use Cmd+Q/application-menu Quit, tray Quit, Dock Quit, and log out of a disposable macOS account. Confirm every final draft survives each supported orderly shutdown. A failed save or missing acknowledgement must cancel Quit and restore editing; retry must work without duplicate notes. Exercise AppKit termination separately from Tauri's exit callback.
 - [ ] Restore a note from Trash and confirm a name conflict never overwrites an existing note.
 - [ ] Paste and move image assets; confirm crafted `../`, absolute, and symlinked paths cannot escape the configured vault.
-- [ ] Edit a note from another app and confirm Stik refreshes without displaying a partial write.
-- [ ] Enable iCloud, test offline/reconnect behavior, and verify coordinated reads and writes.
+- [ ] Edit a note from another app and confirm Stix refreshes without displaying a partial write.
 - [ ] Run Vault Health against healthy, unwritable, and deliberately out-of-sync scratch vaults; export diagnostics.
 - [ ] Lock and unlock a note, relaunch, test idle/sleep relocking, and verify recovery-key export.
 - [ ] Confirm legacy lock-key migration succeeds before the old file is removed.
 
 ## 4. Check privacy and accessibility
 
-- [ ] On a fresh profile, decline analytics and confirm no analytics ID is created and no PostHog request is sent.
-- [ ] Opt in, verify only documented metadata/events are sent, then opt out and confirm the identifier is deleted.
+- [ ] Confirm the app makes no analytics or telemetry request on launch.
 - [ ] Confirm remote Markdown images are blocked by default and require the explicit setting to load.
 - [ ] Complete capture, search, move, delete/restore, settings, and lock/unlock using only the keyboard.
 - [ ] Run the same primary workflows with VoiceOver, including dialog focus entry/return and live status announcements.
@@ -75,8 +90,7 @@ Use a scratch notes directory. Stable and beta builds can share settings, so nev
 ## 6. Publish and monitor
 
 - [ ] Publish the GitHub draft only after both architectures and DMGs are present.
-- [ ] Confirm the Homebrew cask uses `depends_on macos: :sonoma`, correct checksums, and both architecture URLs.
-- [ ] Install once from the DMG, once through Homebrew, and upgrade from the previous stable release through the in-app updater.
+- [ ] Install from the DMG and upgrade from the previous stable release through the in-app updater.
 - [ ] Confirm stable users cannot receive beta artifacts and beta builds cannot update the stable feed.
 - [ ] Watch crash/support/security channels after release and keep the previous signed build available for rollback.
 - [ ] Close only issues verified in the published build, then update the roadmap and release links.

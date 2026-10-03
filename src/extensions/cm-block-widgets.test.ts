@@ -56,8 +56,8 @@ describe("image widget privacy", () => {
 
   it.each([
     "data:image/png;base64,abc",
-    "https://asset.localhost/Users/me/Stik/.assets/local.png",
-    "asset://localhost/Users/me/Stik/.assets/legacy.png",
+    "https://asset.localhost/Users/me/Stix/.assets/local.png",
+    "asset://localhost/Users/me/Stix/.assets/legacy.png",
   ])("renders trusted local source %s without a prompt", (source) => {
     const widget = createImageWidgetDom(source, "local", false);
 

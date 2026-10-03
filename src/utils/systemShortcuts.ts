@@ -12,14 +12,14 @@ export const SYSTEM_SHORTCUT_ACTIONS = [
 export type SystemAction = (typeof SYSTEM_SHORTCUT_ACTIONS)[number];
 
 export const SYSTEM_SHORTCUT_DEFAULTS: Record<SystemAction, string> = {
-  search: "Cmd+Shift+P",
-  manager: "Cmd+Shift+M",
-  settings: "Cmd+Shift+Comma",
-  last_note: "Cmd+Shift+L",
-  zen_mode: "Cmd+Period",
-  dictation: "Cmd+Shift+D",
-  voice_note: "Cmd+Shift+V",
-  clip_capture: "Cmd+Shift+C",
+  search: "Ctrl+Option+P",
+  manager: "Ctrl+Option+M",
+  settings: "Ctrl+Option+Comma",
+  last_note: "Ctrl+Option+L",
+  zen_mode: "Ctrl+Option+Period",
+  dictation: "Ctrl+Option+D",
+  voice_note: "Ctrl+Option+V",
+  clip_capture: "Ctrl+Option+C",
 };
 
 export const SYSTEM_SHORTCUT_LABEL_KEYS: Record<SystemAction, TranslationKey> = {

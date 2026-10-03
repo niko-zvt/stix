@@ -238,6 +238,19 @@ export function detectFormatState(view: EditorView): FormatState {
   };
 }
 
+/** Insert or wrap a display-math block delimited by $$. */
+export function insertLatex(view: EditorView): void {
+  const { from, to } = view.state.selection.main;
+  const selected = view.state.sliceDoc(from, to).trim();
+  const body = selected || "";
+  const insert = `$$\n${body}\n$$`;
+  const cursor = from + 3 + body.length;
+  view.dispatch({
+    changes: { from, to, insert },
+    selection: { anchor: cursor },
+  });
+}
+
 /** Check if position is between opening and closing marker pairs */
 function isInsideMarker(text: string, pos: number, marker: string): boolean {
   const mLen = marker.length;

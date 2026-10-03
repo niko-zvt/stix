@@ -11,7 +11,7 @@ import type {
   CaptureStreakStatus,
   GitSyncStatus,
   OnThisDayStatus,
-  StikSettings,
+  StixSettings,
 } from "@/types";
 import { createCoalescedTaskRunner } from "@/utils/coalescedTaskRunner";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -255,7 +255,7 @@ export default function SettingsModal({
 }: SettingsModalProps) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<SettingsTab>("appearance");
-  const [settings, setSettings] = useState<StikSettings | null>(null);
+  const [settings, setSettings] = useState<StixSettings | null>(null);
   const [folders, setFolders] = useState<string[]>([]);
   const [captureStreak, setCaptureStreak] =
     useState<CaptureStreakStatus | null>(null);
@@ -380,7 +380,7 @@ export default function SettingsModal({
 
   useEffect(() => {
     if (isOpen) {
-      invoke<StikSettings>("get_settings").then(setSettings);
+      invoke<StixSettings>("get_settings").then(setSettings);
       invoke<string[]>("list_folders").then(setFolders);
       invoke<string>("get_notes_directory")
         .then(setResolvedNotesDir)
@@ -415,7 +415,7 @@ export default function SettingsModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  const performSave = useCallback(async (settingsToSave: StikSettings) => {
+  const performSave = useCallback(async (settingsToSave: StixSettings) => {
     try {
       await invoke("save_settings", { settings: settingsToSave });
       await invoke("reload_shortcuts");
@@ -440,7 +440,7 @@ export default function SettingsModal({
   }, []);
   const saveQueueRef = useRef(createCoalescedTaskRunner(performSave));
 
-  const handleSettingsChange = useCallback((newSettings: StikSettings) => {
+  const handleSettingsChange = useCallback((newSettings: StixSettings) => {
     setSettings(newSettings);
     hasPendingRef.current = true;
 
@@ -636,7 +636,7 @@ export default function SettingsModal({
       onClose={() => void handleClose()}
       initialFocusRef={modalCloseRef}
       backdropClassName="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm"
-      panelClassName="bg-bg rounded-[14px] max-h-[85vh] flex flex-col shadow-stik overflow-hidden border border-line/50"
+      panelClassName="bg-bg rounded-[14px] max-h-[85vh] flex flex-col shadow-stix overflow-hidden border border-line/50"
       panelStyle={{
         width: `min(96vw, ${SETTINGS_MODAL_MAX_WIDTH}px)`,
         minWidth: `min(96vw, ${SETTINGS_MODAL_MIN_WIDTH}px)`,

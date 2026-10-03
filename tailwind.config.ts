@@ -28,7 +28,7 @@ const config: Config = {
         pill: "100px",
       },
       boxShadow: {
-        stik: "var(--shadow-stik)",
+        stix: "var(--shadow-stix)",
         "coral-sm": "var(--shadow-coral-sm)",
         "coral-lg": "var(--shadow-coral-lg)",
       },

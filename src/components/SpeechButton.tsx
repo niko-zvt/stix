@@ -83,12 +83,12 @@ const SpeechButton = forwardRef<SpeechButtonRef, SpeechButtonProps>(
         state === "recording" ||
         state === "processing";
       (
-        window as unknown as { __stikDictationHoldOpen?: boolean }
-      ).__stikDictationHoldOpen = holdOpen;
+        window as unknown as { __stixDictationHoldOpen?: boolean }
+      ).__stixDictationHoldOpen = holdOpen;
       return () => {
         (
-          window as unknown as { __stikDictationHoldOpen?: boolean }
-        ).__stikDictationHoldOpen = false;
+          window as unknown as { __stixDictationHoldOpen?: boolean }
+        ).__stixDictationHoldOpen = false;
       };
     }, [setupOpen, state]);
 
